@@ -1,0 +1,16 @@
+{
+  "name": "quwork-mobile-dev",
+  "private": true,
+  "scripts": {
+    "quwork:emu": "bash tooling/quwork-android.sh --backend mock",
+    "quwork:emu:start": "bash tooling/quwork-emulator.sh",
+    "quwork:mock": "bash tooling/quwork-mock.sh",
+    "quwork:dev": "bash tooling/quwork-android.sh --backend dev",
+    "quwork:prod": "bash tooling/quwork-android.sh --backend prod",
+    "quwork:logs": "bash tooling/quwork-logs.sh",
+    "quwork:analyze": "bash tooling/quwork-analyze.sh",
+    "quwork:apk": "bash tooling/quwork-android.sh --backend mock --build-only",
+    "quwork:apk:release": "bash tooling/quwork-android.sh --backend prod --release --build-only",
+    "quwork:test": "bash tooling/quwork-test.sh"
+  }
+}

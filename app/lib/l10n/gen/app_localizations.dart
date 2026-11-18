@@ -8666,6 +8666,192 @@ abstract class L10n {
   /// **'{name}，{description}'**
   String chatArtifactSemantics(String name, String description);
 
+  /// No description provided for @quworkLoginTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'QuWork 账号'**
+  String get quworkLoginTitle;
+
+  /// No description provided for @quworkLoginIntro.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录 QuWork 后可使用账号模型和后续远程连接功能。'**
+  String get quworkLoginIntro;
+
+  /// No description provided for @quworkLoginPhone.
+  ///
+  /// In zh, this message translates to:
+  /// **'手机号'**
+  String get quworkLoginPhone;
+
+  /// No description provided for @quworkLoginCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证码'**
+  String get quworkLoginCode;
+
+  /// No description provided for @quworkLoginSendCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'获取验证码'**
+  String get quworkLoginSendCode;
+
+  /// No description provided for @quworkLoginSubmit.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录'**
+  String get quworkLoginSubmit;
+
+  /// No description provided for @quworkLoginWorking.
+  ///
+  /// In zh, this message translates to:
+  /// **'处理中…'**
+  String get quworkLoginWorking;
+
+  /// No description provided for @quworkLoginPhoneInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入有效的手机号'**
+  String get quworkLoginPhoneInvalid;
+
+  /// No description provided for @quworkLoginFieldsInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入手机号和验证码'**
+  String get quworkLoginFieldsInvalid;
+
+  /// No description provided for @quworkLoginCodeSent.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证码已发送'**
+  String get quworkLoginCodeSent;
+
+  /// No description provided for @quworkLoginSignedIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'已登录'**
+  String get quworkLoginSignedIn;
+
+  /// No description provided for @quworkLoginRestoring.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在恢复登录状态…'**
+  String get quworkLoginRestoring;
+
+  /// No description provided for @quworkLoginFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录状态异常，可重新登录'**
+  String get quworkLoginFailed;
+
+  /// No description provided for @quworkLoginSignInHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'手机号登录 QuWork'**
+  String get quworkLoginSignInHint;
+
+  /// No description provided for @quworkLoginSignOut.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出登录'**
+  String get quworkLoginSignOut;
+
+  /// No description provided for @quworkCaptchaToken.
+  ///
+  /// In zh, this message translates to:
+  /// **'滑块验证票据（测试可填）'**
+  String get quworkCaptchaToken;
+
+  /// No description provided for @quworkWechatLogin.
+  ///
+  /// In zh, this message translates to:
+  /// **'微信扫码登录'**
+  String get quworkWechatLogin;
+
+  /// No description provided for @quworkWechatOpened.
+  ///
+  /// In zh, this message translates to:
+  /// **'已打开微信登录页面，完成后粘贴回调地址'**
+  String get quworkWechatOpened;
+
+  /// No description provided for @quworkWechatCallback.
+  ///
+  /// In zh, this message translates to:
+  /// **'微信回调地址'**
+  String get quworkWechatCallback;
+
+  /// No description provided for @quworkWechatCallbackInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入有效的微信回调地址'**
+  String get quworkWechatCallbackInvalid;
+
+  /// No description provided for @quworkWechatBindRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'该微信尚未绑定手机号，请先完成手机号登录后再绑定'**
+  String get quworkWechatBindRequired;
+
+  /// No description provided for @quworkWechatFinish.
+  ///
+  /// In zh, this message translates to:
+  /// **'处理微信回调'**
+  String get quworkWechatFinish;
+
+  /// No description provided for @quworkGatewayTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'远程 Gateway'**
+  String get quworkGatewayTitle;
+
+  /// No description provided for @quworkGatewayIntro.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描 Qurvis Mobile Gateway 配对二维码后连接主机。'**
+  String get quworkGatewayIntro;
+
+  /// No description provided for @quworkGatewayQr.
+  ///
+  /// In zh, this message translates to:
+  /// **'配对二维码链接'**
+  String get quworkGatewayQr;
+
+  /// No description provided for @quworkGatewayPair.
+  ///
+  /// In zh, this message translates to:
+  /// **'配对设备'**
+  String get quworkGatewayPair;
+
+  /// No description provided for @quworkGatewayConnected.
+  ///
+  /// In zh, this message translates to:
+  /// **'Gateway 已连接'**
+  String get quworkGatewayConnected;
+
+  /// No description provided for @quworkGatewayQrInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入有效的 Gateway 配对链接'**
+  String get quworkGatewayQrInvalid;
+
+  /// No description provided for @quworkGatewayDevice.
+  ///
+  /// In zh, this message translates to:
+  /// **'设备'**
+  String get quworkGatewayDevice;
+
+  /// No description provided for @quworkGatewayFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'Gateway 连接失败'**
+  String get quworkGatewayFailed;
+
+  /// No description provided for @quworkGatewayScan.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描二维码'**
+  String get quworkGatewayScan;
+
   /// No description provided for @commonCancel.
   ///
   /// In zh, this message translates to:

@@ -9,6 +9,8 @@
   </picture>
 </p>
 
+> QuWork mobile developers: see [README.quwork.en.md](README.quwork.en.md) for the environment, One-API endpoints, emulator, logs, and build commands.
+
 <p align="center">
   A mobile client for DeepSeek Harness. Android is released; iOS is in development and device testing, and currently needs a Mac build signed with your own team (<a href="app/ios/README.md">iOS project</a> · <a href="docs/architecture.md">architecture</a>).
 </p>

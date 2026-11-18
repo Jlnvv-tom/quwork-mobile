@@ -2,6 +2,8 @@
   <b>简体中文</b> · <a href="README.en.md">English</a>
 </p>
 
+> QuWork 手机端开发者请先看：[README.quwork.md](README.quwork.md)（环境、One-API、模拟器、日志和打包命令）。
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-zh-dark.webp">

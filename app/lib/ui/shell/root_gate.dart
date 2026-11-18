@@ -22,10 +22,13 @@ import '../../state/notify_state.dart';
 import '../../state/ohos_linux_state.dart';
 import '../../state/onboarding_state.dart';
 import '../../state/settings_state.dart';
+import '../../state/quwork_auth_state.dart';
+import '../../state/quwork_models_state.dart';
 import '../../ui_config/ui_skill.dart';
 import '../onboarding/onboarding_flow.dart';
 import '../onboarding/setup_progress.dart';
 import '../remote/remote_screen.dart';
+import '../auth/quwork_login_page.dart';
 import '../theme/theme.dart';
 import '../web/mode_home.dart';
 import 'brand_mark.dart';
@@ -298,6 +301,8 @@ class _RootGateState extends ConsumerState<RootGate> {
   @override
   Widget build(BuildContext context) {
     ref.watch(automaticDiagnosticsProvider);
+    final quworkAuth = ref.watch(quWorkAuthProvider);
+    ref.watch(quWorkProviderSyncProvider);
     final settings = ref.watch(settingsProvider);
     final runtime = ref.watch(localRuntimeProvider.select((s) => (status: s.status, loaded: s.loaded)));
     final prefs = ref.watch(onboardingPrefsProvider);
@@ -345,9 +350,11 @@ class _RootGateState extends ConsumerState<RootGate> {
     if (runtime.status.phase == RuntimePhase.running) _publishDiagnostics();
 
     final Widget child;
-    if (!settings.loaded || !runtime.loaded || !prefs.loaded) {
+    if (!settings.loaded || !runtime.loaded || !prefs.loaded || quworkAuth.phase == QuWorkAuthPhase.restoring) {
       StartupTrace.mark('waiting: settings ${settings.loaded}, engine ${runtime.loaded}, setup ${prefs.loaded}');
       child = const _Splash();
+    } else if (widget.home == null && !quworkAuth.signedIn) {
+      child = const QuWorkLoginPage(embedded: true);
     } else {
       if (!_decided) {
         _decided = true;

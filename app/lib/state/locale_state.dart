@@ -18,7 +18,7 @@ enum AppLanguage {
   };
 
   static AppLanguage parse(String? v) =>
-      AppLanguage.values.firstWhere((l) => l.name == v, orElse: () => AppLanguage.system);
+      AppLanguage.values.firstWhere((l) => l.name == v, orElse: () => AppLanguage.zh);
 }
 
 class AppLanguageController extends Notifier<AppLanguage> {
@@ -29,7 +29,9 @@ class AppLanguageController extends Notifier<AppLanguage> {
   /// What the app starts with: [load] fills it in before runApp so the first
   /// frame is already in the chosen language. Tests pin zh
   /// (test/flutter_test_config.dart).
-  static AppLanguage initial = AppLanguage.system;
+  // QuWork uses Simplified Chinese on the first launch. A saved choice still
+  // wins, including an explicit "system" selection made in Settings.
+  static AppLanguage initial = AppLanguage.zh;
 
   /// Reads the stored choice into [initial].
   static Future<void> load() async {

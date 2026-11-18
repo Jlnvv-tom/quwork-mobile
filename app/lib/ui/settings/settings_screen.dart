@@ -18,6 +18,7 @@ import '../../state/phone_state.dart';
 import '../../state/plugins_state.dart';
 import '../../state/sessions_state.dart';
 import '../../state/settings_state.dart';
+import '../../state/quwork_auth_state.dart';
 import '../../state/system_actions_state.dart';
 import '../../state/ui_mode_state.dart';
 import '../../state/update_state.dart';
@@ -46,6 +47,8 @@ import '../plugins/seats/seat_probe.dart';
 import '../providers/providers_page.dart';
 import '../remote/host_status.dart';
 import '../remote/remote_screen.dart';
+import '../remote/quwork_gateway_page.dart';
+import '../auth/quwork_login_page.dart';
 import '../shell/brand_mark.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
@@ -147,6 +150,14 @@ class SettingsScreen extends ConsumerWidget {
         SettingsSection(
           title: l10n.hubGroupAi,
           children: [
+            _QuWorkAccountTile(tint: SettingsHues.ai),
+            SettingsTile(
+              icon: Icons.devices_other_outlined,
+              tint: SettingsHues.ai,
+              title: l10n.quworkGatewayTitle,
+              subtitle: l10n.quworkGatewayIntro,
+              onTap: () => _push(context, const QuWorkGatewayPage()),
+            ),
             SettingsTile(
               icon: AppIcons.providers,
               tint: SettingsHues.ai,
@@ -372,6 +383,29 @@ class SettingsScreen extends ConsumerWidget {
     if (state == null || value == null || state.invalidDefault) return null;
     final name = state.options.where((o) => o.value == value).firstOrNull?.name;
     return (permissionName(value, name), value == 'danger-full-access' || value == 'auto');
+  }
+}
+
+class _QuWorkAccountTile extends ConsumerWidget {
+  const _QuWorkAccountTile({required this.tint});
+  final int tint;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(quWorkAuthProvider);
+    final subtitle = switch (auth.phase) {
+      QuWorkAuthPhase.signedIn => auth.user?.label ?? context.l10n.quworkLoginSignedIn,
+      QuWorkAuthPhase.restoring => context.l10n.quworkLoginRestoring,
+      QuWorkAuthPhase.failed => context.l10n.quworkLoginFailed,
+      _ => context.l10n.quworkLoginSignInHint,
+    };
+    return SettingsTile(
+      icon: Icons.account_circle_outlined,
+      tint: tint,
+      title: context.l10n.quworkLoginTitle,
+      subtitle: subtitle,
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const QuWorkLoginPage())),
+    );
   }
 }
 

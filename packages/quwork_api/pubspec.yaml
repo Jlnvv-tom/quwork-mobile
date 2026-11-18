@@ -1,0 +1,14 @@
+name: quwork_api
+description: Pure-Dart client for the QuWork account and model control plane.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  http: ^1.6.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.26.0

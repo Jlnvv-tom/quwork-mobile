@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 import '../../state/models_state.dart';
+import '../../state/quwork_models_state.dart';
 import '../../state/settings_state.dart';
 import '../common/app_sheet.dart';
 import '../common/empty_view.dart';
@@ -451,8 +452,9 @@ class _ModelSheetState extends ConsumerState<_ModelSheet> {
 
   void _pickModel(ModelInfo model) {
     final view = ref.read(modelListViewProvider);
+    final catalog = ref.read(quWorkMergedCatalogProvider);
     if (!_active || view.readOnly) return;
-    final available = findModel(view.value, ModelSelection(provider: model.provider, model: model.id));
+    final available = findModel(catalog, ModelSelection(provider: model.provider, model: model.id));
     if (available == null || !identical(available, model)) return;
     final keep = _selection?.reasoningEffort;
     final supported = model.efforts.any((e) => e.id == keep);
@@ -473,7 +475,7 @@ class _ModelSheetState extends ConsumerState<_ModelSheet> {
     if (!_active || view.readOnly) return;
     final current = _selection;
     if (current == null) return;
-    final available = findModel(view.value, current);
+    final available = findModel(ref.read(quWorkMergedCatalogProvider), current);
     if (available == null || !available.efforts.any((entry) => entry.id == effort)) return;
     final next = ModelSelection(provider: current.provider, model: current.model, reasoningEffort: effort);
     setState(() => _selection = next);
@@ -490,8 +492,9 @@ class _ModelSheetState extends ConsumerState<_ModelSheet> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final catalogAsync = ref.watch(modelCatalogProvider);
+    ref.watch(quWorkProviderSyncProvider);
     final view = ref.watch(modelListViewProvider);
-    final catalog = view.value;
+    final catalog = ref.watch(quWorkMergedCatalogProvider);
     final active = identical(_scope, ref.watch(modelSelectionScopeProvider));
 
     final Widget body;
@@ -555,9 +558,8 @@ class _ModelSheetState extends ConsumerState<_ModelSheet> {
                       ? null
                       : () {
                           final currentView = ref.read(modelListViewProvider);
-                          if (!_active ||
-                              currentView.readOnly ||
-                              !isValidModelSelection(currentView.value, _selection)) {
+                          final currentCatalog = ref.read(quWorkMergedCatalogProvider);
+                          if (!_active || currentView.readOnly || !isValidModelSelection(currentCatalog, _selection)) {
                             return;
                           }
                           widget.onSelected(_selection!);

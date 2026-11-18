@@ -5019,6 +5019,99 @@ class L10nEn extends L10n {
   }
 
   @override
+  String get quworkLoginTitle => 'QuWork account';
+
+  @override
+  String get quworkLoginIntro => 'Sign in to QuWork to use account models and later remote connections.';
+
+  @override
+  String get quworkLoginPhone => 'Phone number';
+
+  @override
+  String get quworkLoginCode => 'Verification code';
+
+  @override
+  String get quworkLoginSendCode => 'Send code';
+
+  @override
+  String get quworkLoginSubmit => 'Sign in';
+
+  @override
+  String get quworkLoginWorking => 'Working…';
+
+  @override
+  String get quworkLoginPhoneInvalid => 'Enter a valid phone number';
+
+  @override
+  String get quworkLoginFieldsInvalid => 'Enter your phone number and verification code';
+
+  @override
+  String get quworkLoginCodeSent => 'Verification code sent';
+
+  @override
+  String get quworkLoginSignedIn => 'Signed in';
+
+  @override
+  String get quworkLoginRestoring => 'Restoring sign-in…';
+
+  @override
+  String get quworkLoginFailed => 'Sign-in needs attention; try again';
+
+  @override
+  String get quworkLoginSignInHint => 'Sign in to QuWork with your phone';
+
+  @override
+  String get quworkLoginSignOut => 'Sign out';
+
+  @override
+  String get quworkCaptchaToken => 'Slider ticket (for simulator tests)';
+
+  @override
+  String get quworkWechatLogin => 'Sign in with WeChat';
+
+  @override
+  String get quworkWechatOpened => 'WeChat login opened; paste the callback URL when it finishes';
+
+  @override
+  String get quworkWechatCallback => 'WeChat callback URL';
+
+  @override
+  String get quworkWechatCallbackInvalid => 'Enter a valid WeChat callback URL';
+
+  @override
+  String get quworkWechatBindRequired => 'This WeChat account needs a phone binding; sign in by phone first';
+
+  @override
+  String get quworkWechatFinish => 'Process callback';
+
+  @override
+  String get quworkGatewayTitle => 'Remote Gateway';
+
+  @override
+  String get quworkGatewayIntro => 'Pair with a Qurvis Mobile Gateway QR link to connect a host.';
+
+  @override
+  String get quworkGatewayQr => 'Pairing QR link';
+
+  @override
+  String get quworkGatewayPair => 'Pair device';
+
+  @override
+  String get quworkGatewayConnected => 'Gateway connected';
+
+  @override
+  String get quworkGatewayQrInvalid => 'Enter a valid Gateway pairing link';
+
+  @override
+  String get quworkGatewayDevice => 'Device';
+
+  @override
+  String get quworkGatewayFailed => 'Gateway connection failed';
+
+  @override
+  String get quworkGatewayScan => 'Scan QR code';
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override

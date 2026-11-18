@@ -4718,6 +4718,99 @@ class L10nZh extends L10n {
   }
 
   @override
+  String get quworkLoginTitle => 'QuWork 账号';
+
+  @override
+  String get quworkLoginIntro => '登录 QuWork 后可使用账号模型和后续远程连接功能。';
+
+  @override
+  String get quworkLoginPhone => '手机号';
+
+  @override
+  String get quworkLoginCode => '验证码';
+
+  @override
+  String get quworkLoginSendCode => '获取验证码';
+
+  @override
+  String get quworkLoginSubmit => '登录';
+
+  @override
+  String get quworkLoginWorking => '处理中…';
+
+  @override
+  String get quworkLoginPhoneInvalid => '请输入有效的手机号';
+
+  @override
+  String get quworkLoginFieldsInvalid => '请输入手机号和验证码';
+
+  @override
+  String get quworkLoginCodeSent => '验证码已发送';
+
+  @override
+  String get quworkLoginSignedIn => '已登录';
+
+  @override
+  String get quworkLoginRestoring => '正在恢复登录状态…';
+
+  @override
+  String get quworkLoginFailed => '登录状态异常，可重新登录';
+
+  @override
+  String get quworkLoginSignInHint => '手机号登录 QuWork';
+
+  @override
+  String get quworkLoginSignOut => '退出登录';
+
+  @override
+  String get quworkCaptchaToken => '滑块验证票据（测试可填）';
+
+  @override
+  String get quworkWechatLogin => '微信扫码登录';
+
+  @override
+  String get quworkWechatOpened => '已打开微信登录页面，完成后粘贴回调地址';
+
+  @override
+  String get quworkWechatCallback => '微信回调地址';
+
+  @override
+  String get quworkWechatCallbackInvalid => '请输入有效的微信回调地址';
+
+  @override
+  String get quworkWechatBindRequired => '该微信尚未绑定手机号，请先完成手机号登录后再绑定';
+
+  @override
+  String get quworkWechatFinish => '处理微信回调';
+
+  @override
+  String get quworkGatewayTitle => '远程 Gateway';
+
+  @override
+  String get quworkGatewayIntro => '扫描 Qurvis Mobile Gateway 配对二维码后连接主机。';
+
+  @override
+  String get quworkGatewayQr => '配对二维码链接';
+
+  @override
+  String get quworkGatewayPair => '配对设备';
+
+  @override
+  String get quworkGatewayConnected => 'Gateway 已连接';
+
+  @override
+  String get quworkGatewayQrInvalid => '请输入有效的 Gateway 配对链接';
+
+  @override
+  String get quworkGatewayDevice => '设备';
+
+  @override
+  String get quworkGatewayFailed => 'Gateway 连接失败';
+
+  @override
+  String get quworkGatewayScan => '扫描二维码';
+
+  @override
   String get commonCancel => '取消';
 
   @override
