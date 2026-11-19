@@ -14,6 +14,7 @@
   "quworkLoginFailed": "Sign-in needs attention; try again",
   "quworkLoginSignInHint": "Sign in to QuWork with your phone",
   "quworkLoginSignOut": "Sign out",
+  "quworkUsageSummary": "Model usage is tracked by your QuWork account",
   "quworkCaptchaTitle": "Verification",
   "quworkCaptchaHint": "Slide to complete the check",
   "quworkCaptchaCancelled": "Verification not completed",

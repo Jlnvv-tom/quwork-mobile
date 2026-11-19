@@ -187,10 +187,7 @@ class UsageSheet extends ConsumerWidget {
             SheetTitleBar(l10n.activityUsage),
             SessionUsageSections(usage: usage, pricing: pricing, sheet: true, margin: _margin),
             const SizedBox(height: 16),
-            if (Subscription.fromWire(model?.provider) case final subscription?)
-              _SubscriptionQuota(subscription: subscription, margin: _margin)
-            else
-              BalanceCard(title: l10n.activityUsageBalance, margin: _margin),
+            QuWorkUsageCard(margin: _margin),
           ],
         ),
       ),

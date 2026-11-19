@@ -14,6 +14,8 @@ import 'connection_state.dart';
 import 'hosts_state.dart';
 import 'models_state.dart';
 import 'notify_state.dart' show appForegroundProvider;
+import 'quwork_auth_state.dart';
+import 'quwork_models_state.dart';
 import 'run_pulse.dart';
 import 'sessions_state.dart';
 
@@ -1326,6 +1328,10 @@ class ChatController extends Notifier<ChatState> {
     final body = verbatim ? text : trimmed;
     if (!_canControl && (mode == SendMode.interrupt || !await waitForSync())) return false;
     if (!ref.mounted || !identical(client, _client) || !_canControl) return false;
+    if (!await _ensureQuWorkModel()) {
+      if (ref.mounted) state = state.copyWith(error: appL10n.quworkLoginSignInHint);
+      return false;
+    }
     final operation = _ChatOperation(ref, client, _syncScope);
     final content = _contentKey(body, attachments);
     final retrying = _unsettled?.content == content;
@@ -1498,6 +1504,34 @@ class ChatController extends Notifier<ChatState> {
   /// many).
   void _sent() {
     if (ref.mounted) ref.read(usageStatsProvider.notifier).count(UsageCount.turns);
+  }
+
+  /// Existing sessions can retain an upstream model selection from before the
+  /// QuWork migration. Replace it before a new request so a continued chat
+  /// cannot spend against the old account or provider.
+  Future<bool> _ensureQuWorkModel() async {
+    if (!ref.read(quWorkAuthProvider).signedIn) return false;
+    final client = _client;
+    if (client == null) return false;
+    try {
+      await ref.read(quWorkProviderSyncProvider.future);
+      final models = ref.read(quWorkModelsProvider).models;
+      if (models.isEmpty) return false;
+      final current = _model;
+      if (current?.provider == 'quwork' && current?.model == models.first.id) return true;
+      final result = await client.setModelResult(
+        sessionId,
+        provider: 'quwork',
+        model: models.first.id,
+        reasoningEffort: current?.reasoningEffort,
+      );
+      if (!ref.mounted || !identical(_client, client)) return false;
+      _model = result.selected;
+      state = state.copyWith(model: result.selected);
+      return result.selected.provider == 'quwork';
+    } on Object {
+      return false;
+    }
   }
 
   /// A model call finished on the host: the tokens its provider reported go

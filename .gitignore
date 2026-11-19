@@ -3,6 +3,7 @@
 # toolchain logs and screenshots
 tooling/*.log
 tooling/env.sh
+tooling/quwork.env
 tooling/shots/
 # runtime build cache and outputs (large, reproducible via runtime/build-runtime.sh)
 runtime/.cache/

@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 
-import '../../account/account_page.dart';
+import '../../auth/quwork_login_page.dart';
 import '../../engine/engine_screen.dart';
 import '../../engine_settings/engine_settings_hub.dart';
 import '../../engine_settings/runtime_settings_pages.dart';
@@ -81,7 +81,7 @@ Widget settingsPage(SettingsPageId id, {String? sessionId}) => switch (id) {
   SettingsPageId.pluginInventory => const PluginInventoryPage(),
   SettingsPageId.plugins => const PluginsScreen(),
   SettingsPageId.allFeatures => const AllFeaturesPage(),
-  SettingsPageId.account => const AccountPage(),
+  SettingsPageId.account => const QuWorkLoginPage(),
   SettingsPageId.remote => const RemoteScreen(),
   SettingsPageId.permission => PermissionPage(sessionId: sessionId),
   SettingsPageId.agentPresets => const AgentPresetsPage(),

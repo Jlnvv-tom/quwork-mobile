@@ -9,11 +9,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/l10n.dart';
 import '../../state/balance_state.dart';
+import '../../state/quwork_auth_state.dart';
 import '../common/app_dialog.dart';
 import '../common/app_sheet.dart';
 import '../common/sheet_title_bar.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
+import '../auth/quwork_login_page.dart';
 import 'usage_sheet.dart' show UsageFigure;
 
 /// `¥110.00`
@@ -41,6 +43,37 @@ Future<void> openTopUp(BuildContext context) async {
       actions: [TextButton(onPressed: () => Navigator.of(dialog).pop(), child: Text(dialog.l10n.commonClose))],
     ),
   );
+}
+
+/// QuWork owns usage and quota; the legacy DeepSeek wallet card is not shown.
+class QuWorkUsageCard extends ConsumerWidget {
+  const QuWorkUsageCard({super.key, this.margin = const EdgeInsets.symmetric(horizontal: AppSpace.gutter)});
+
+  final EdgeInsets margin;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(quWorkAuthProvider);
+    return SheetGroup(
+      margin: margin,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
+            children: [
+              Expanded(child: Text(context.l10n.quworkUsageSummary)),
+              if (!auth.signedIn)
+                TextButton(
+                  onPressed: () =>
+                      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const QuWorkLoginPage())),
+                  child: Text(context.l10n.commonSignIn),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// 设置 → 模型与密钥里、API Key 下面的一行余额。

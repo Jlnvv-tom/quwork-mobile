@@ -16,6 +16,8 @@ import 'time_zones.dart';
 import 'connection_state.dart';
 import 'sessions_state.dart';
 import 'settings_state.dart';
+import 'quwork_auth_state.dart';
+import 'quwork_models_state.dart';
 
 /// The phone's IANA time zone (the default for new rules).
 final deviceTimeZoneProvider = FutureProvider<String>((ref) => detectDeviceTimeZone());
@@ -69,14 +71,18 @@ Future<String> startConversation(WidgetRef ref, ConversationPlan plan) async {
     }
     unawaited(ref.read(sessionsProvider.notifier).refresh());
   }
-  if (plan.model case final model?) {
-    await conn.client.setModel(
-      id,
-      provider: model.provider,
-      model: model.model,
-      reasoningEffort: model.reasoningEffort,
-    );
+  final auth = ref.read(quWorkAuthProvider);
+  final quWorkModel = quWorkDefaultSelection(ref.read(quWorkModelsProvider));
+  if (!auth.signedIn || !auth.hasModelCredential || quWorkModel == null) {
+    throw StateError(appL10n.quworkLoginSignInHint);
   }
+  await ref.read(quWorkProviderSyncProvider.future);
+  final model = ModelSelection(
+    provider: quWorkModel.provider,
+    model: quWorkModel.model,
+    reasoningEffort: plan.model?.reasoningEffort,
+  );
+  await conn.client.setModel(id, provider: model.provider, model: model.model, reasoningEffort: model.reasoningEffort);
   return id;
 }
 

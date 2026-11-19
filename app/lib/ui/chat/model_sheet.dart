@@ -15,7 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../state/models_state.dart';
 import '../../state/quwork_models_state.dart';
-import '../../state/settings_state.dart';
+import '../../state/quwork_auth_state.dart';
 import '../common/app_sheet.dart';
 import '../common/empty_view.dart';
 import '../common/pressable.dart';
@@ -24,9 +24,8 @@ import '../common/sheet_title_bar.dart';
 import '../common/smooth_size.dart';
 import '../common/read_list_status.dart';
 import '../common/ui_trace.dart';
-import '../onboarding/api_key_page.dart';
-import '../providers/provider_form_page.dart';
 import '../providers/providers_page.dart';
+import '../auth/quwork_login_page.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 
@@ -73,7 +72,7 @@ class ComposerModelPill extends ConsumerWidget {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final catalog = ref.watch(currentModelCatalogProvider);
+    final catalog = ref.watch(quWorkMergedCatalogProvider);
     final effective = selection ?? catalog?.defaultSelection;
     final effort = effective?.reasoningEffort;
     final name = modelShortName(effective, catalog);
@@ -142,7 +141,7 @@ class ModelChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final catalog = ref.watch(currentModelCatalogProvider);
+    final catalog = ref.watch(quWorkMergedCatalogProvider);
     final effective = selection ?? catalog?.defaultSelection;
     final effort = effective?.reasoningEffort;
     final label = modelShortName(effective, catalog);
@@ -526,7 +525,7 @@ class _ModelSheetState extends ConsumerState<_ModelSheet> {
       if (groups.isEmpty) {
         body = _EmptyCatalog(
           // A failing provider counts: something is set up, just not working.
-          configured: ref.watch(settingsProvider.select((s) => s.hasModelAccess)) || catalog.failures.isNotEmpty,
+          configured: ref.watch(quWorkAuthProvider.select((s) => s.signedIn)) || catalog.failures.isNotEmpty,
           failure: catalog.failures.isEmpty ? null : catalog.failures.first.message,
         );
       } else {
@@ -989,13 +988,11 @@ class _Loading extends StatelessWidget {
   );
 }
 
-/// 目录是空的:DSH 0.2.1 在没有可用凭据时不列任何模型。什么都没配就引导去填
-/// DeepSeek 的 Key,或者添加别的渠道;配了还是空,多半是 Key 还没同步到引擎或者
-/// 无效,去「模型渠道」看。
+/// 目录是空的:QuWork 账号没有同步出可用模型时，引导重新登录或刷新模型。
 class _EmptyCatalog extends StatelessWidget {
   const _EmptyCatalog({required this.configured, this.failure});
 
-  /// A DeepSeek key or a custom provider exists.
+  /// A QuWork credential or a provider failure exists.
   final bool configured;
   final String? failure;
 
@@ -1007,25 +1004,18 @@ class _EmptyCatalog extends StatelessWidget {
     if (!configured) {
       return EmptyView(
         padding: _emptyPadding,
-        icon: AppIcons.apiKey,
+        icon: AppIcons.account,
         title: l10n.viewModelKeyRequired,
         message: l10n.viewModelProvidersHint,
         action: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            FilledButton(
-              onPressed: () => push(const ApiKeyPage(onboarding: false)),
-              child: Text(l10n.viewModelEnterKey),
-            ),
-            const SizedBox(height: 4),
-            TextButton(onPressed: () => push(const ProviderFormPage()), child: Text(l10n.viewModelAddProvider)),
-          ],
+          children: [FilledButton(onPressed: () => push(const QuWorkLoginPage()), child: Text(l10n.viewModelEnterKey))],
         ),
       );
     }
     return EmptyView(
       padding: _emptyPadding,
-      icon: AppIcons.noApiKey,
+      icon: AppIcons.account,
       title: l10n.viewModelNone,
       message: failure != null && failure.isNotEmpty ? failure : l10n.viewModelKeyHint,
       // An empty picker has no selection to resume after provider management.

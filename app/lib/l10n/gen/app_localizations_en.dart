@@ -5064,6 +5064,9 @@ class L10nEn extends L10n {
   String get quworkLoginSignOut => 'Sign out';
 
   @override
+  String get quworkUsageSummary => 'Model usage is tracked by your QuWork account';
+
+  @override
   String get quworkCaptchaTitle => 'Verification';
 
   @override
@@ -5724,10 +5727,10 @@ class L10nEn extends L10n {
   String get companionModeFullHint => 'DSH on the host, with tools and phone control';
 
   @override
-  String get companionLightNoKey => 'Light mode needs a DeepSeek API key. Add one in Settings and we can talk.';
+  String get companionLightNoKey => 'Light mode needs a signed-in QuWork account with an available model.';
 
   @override
-  String get companionLightBadKey => 'The API key seems wrong, or it is no longer valid.';
+  String get companionLightBadKey => 'The QuWork model credential seems invalid or has expired.';
 
   @override
   String get companionLightBusy => 'It is busy over there. Tell me again in a bit?';
@@ -6233,7 +6236,7 @@ class L10nEn extends L10n {
   String get companionAdaptUndone => 'OK, back to how I was.';
 
   @override
-  String get companionAdaptNoKey => 'To fit me with your model, add an API key in Settings first.';
+  String get companionAdaptNoKey => 'To fit me with a QuWork model, sign in to QuWork and enable model access first.';
 
   @override
   String companionAdaptFailed(String reason) {
@@ -9559,7 +9562,7 @@ class L10nEn extends L10n {
   String get hubSettingsLicenses => 'Open-source licenses';
 
   @override
-  String get hubSettingsAccount => 'DeepSeek account';
+  String get hubSettingsAccount => 'QuWork account';
 
   @override
   String get hubSettingsSigningIn => 'Signing in…';
@@ -9568,16 +9571,16 @@ class L10nEn extends L10n {
   String get hubSettingsInvalidKey => 'Invalid API key. Can’t check balance';
 
   @override
-  String get hubSettingsNoApiKey => 'No API key set';
+  String get hubSettingsNoApiKey => 'Not signed in to QuWork';
 
   @override
-  String get hubSettingsApiKeyHint => 'Add an API key to start chatting';
+  String get hubSettingsApiKeyHint => 'Sign in to QuWork to start chatting';
 
   @override
-  String get hubSettingsSignInAccount => 'Sign in to DeepSeek';
+  String get hubSettingsSignInAccount => 'Sign in to your QuWork account';
 
   @override
-  String get hubSettingsOrApiKey => 'Or add an API key';
+  String get hubSettingsOrApiKey => 'Model usage is tracked by QuWork';
 
   @override
   String get hubPluginShare => 'Share plugin';
@@ -9755,7 +9758,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get hubSettingsApiKey => 'DeepSeek API key';
+  String get hubSettingsApiKey => 'QuWork model credential';
 
   @override
   String hubPluginBrowserFailed(String address) {
@@ -17759,11 +17762,11 @@ class L10nEn extends L10n {
       'No Remote account needed. Your DeepSeek password and sign-in tokens are never sent.';
 
   @override
-  String get remotePairNeedsDeepSeek => 'Sign in to DeepSeek first';
+  String get remotePairNeedsDeepSeek => 'Sign in to QuWork first';
 
   @override
   String get remotePairNeedsDeepSeekBody =>
-      'Pairing needs the DeepSeek account signed in on DSH Go. Only its account ID goes along, to label this phone; no password, cookie or token.';
+      'Pairing needs a QuWork account. The QuWork account labels this phone; no DeepSeek password, cookie, or token is sent.';
 
   @override
   String get remotePairScanHint => 'Point the camera at the pairing code the Remote plugin shows on your computer';
@@ -18708,22 +18711,22 @@ class L10nEn extends L10n {
   String get shellGetApiKey => 'Get API key';
 
   @override
-  String get shellConnectDeepSeek => 'Connect DeepSeek';
+  String get shellConnectDeepSeek => 'Connect QuWork';
 
   @override
-  String get shellConnectDeepSeekMessage => 'Sign in to DeepSeek to start. No API key needed.';
+  String get shellConnectDeepSeekMessage => 'Sign in to QuWork to start chatting. Usage is tracked by QuWork.';
 
   @override
   String get shellAccountSignInUnsupported => 'This engine doesn’t support account sign-in';
 
   @override
-  String get shellSignInDeepSeek => 'Sign in with DeepSeek';
+  String get shellSignInDeepSeek => 'Sign in to QuWork';
 
   @override
-  String get shellUseApiKey => 'Use API key';
+  String get shellUseApiKey => 'Sign in to QuWork';
 
   @override
-  String get shellOtherProviders => 'Other providers';
+  String get shellOtherProviders => 'Other providers are managed by QuWork';
 
   @override
   String shellOnboardingStep(int step, int steps) {
@@ -19663,15 +19666,15 @@ class L10nEn extends L10n {
   String get speechVoiceHello => 'Hello, this is the reading voice.';
 
   @override
-  String get speechVoiceDeepseek => 'DeepSeek';
+  String get speechVoiceDeepseek => 'QuWork voice';
 
   @override
   String get speechVoiceDeepseekHint =>
-      'Paid by your signed-in DeepSeek account; the API key in Settings when signed out or when the account can\'t pay for speech. Nothing to set up';
+      'Voice access is managed by the QuWork account; this build needs a QuWork voice endpoint from the service.';
 
   @override
   String get speechVoiceDeepseekFooter =>
-      'Billed by the number of characters read; see the DeepSeek platform for prices. Code blocks, tables and link addresses are left out.';
+      'Voice requests never fall back to an official DeepSeek account or API key. Code blocks, tables and link addresses are left out.';
 
   @override
   String get speechVoiceStella => 'Stella (female)';
@@ -26767,25 +26770,25 @@ class L10nEn extends L10n {
   String get viewModelEffort => 'Thinking effort';
 
   @override
-  String get viewModelKeyRequired => 'API key needed';
+  String get viewModelKeyRequired => 'Sign in to QuWork';
 
   @override
-  String get viewModelProvidersHint => 'Supports DeepSeek and other model providers';
+  String get viewModelProvidersHint => 'Sign in to QuWork to use the models enabled for your account';
 
   @override
-  String get viewModelEnterKey => 'Enter API key';
+  String get viewModelEnterKey => 'Sign in to QuWork';
 
   @override
-  String get viewModelAddProvider => 'Add provider';
+  String get viewModelAddProvider => 'Sign in to QuWork';
 
   @override
   String get viewModelNone => 'No models available';
 
   @override
-  String get viewModelKeyHint => 'Key may not be active or may have expired';
+  String get viewModelKeyHint => 'QuWork models may still be syncing; refresh or sign in again';
 
   @override
-  String get viewModelManageProviders => 'Manage providers';
+  String get viewModelManageProviders => 'Manage QuWork models';
 
   @override
   String get viewContinuePrompt => 'Continue the chat attached here:';

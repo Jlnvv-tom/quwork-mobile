@@ -14,12 +14,12 @@
   "shellShow": "显示",
   "shellApiKeyEncrypted": "加密保存在本机",
   "shellGetApiKey": "获取 API Key",
-  "shellConnectDeepSeek": "连接 DeepSeek",
-  "shellConnectDeepSeekMessage": "登录 DeepSeek 账号即可开始，无需 API Key",
+  "shellConnectDeepSeek": "连接 QuWork",
+  "shellConnectDeepSeekMessage": "登录 QuWork 账号后即可开始对话，模型用量由 QuWork 统一统计",
   "shellAccountSignInUnsupported": "当前引擎不支持账号登录",
-  "shellSignInDeepSeek": "用 DeepSeek 账号登录",
-  "shellUseApiKey": "使用 API Key",
-  "shellOtherProviders": "其他模型渠道",
+  "shellSignInDeepSeek": "登录 QuWork 账号",
+  "shellUseApiKey": "登录 QuWork",
+  "shellOtherProviders": "其他模型渠道已由 QuWork 管理",
   "shellOnboardingStep": "第 {step} 步，共 {steps} 步",
   "@shellOnboardingStep": {
     "placeholders": {

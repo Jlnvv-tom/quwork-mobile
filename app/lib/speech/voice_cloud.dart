@@ -11,9 +11,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
-import '../state/account_state.dart';
 import '../state/connection_state.dart';
-import '../state/settings_state.dart';
+import '../state/quwork_auth_state.dart';
 import '../state/voice_settings.dart';
 import 'deepseek_speech.dart';
 import 'speech_settings.dart';
@@ -151,9 +150,7 @@ final voiceCloudLikelyProvider = Provider<bool Function()>(
       () => switch (ref.read(voiceSettingsProvider)) {
         VoiceMode.deepseek => true,
         VoiceMode.cloud => ref.read(cloudAsrProvider).configured,
-        VoiceMode.auto =>
-          ref.read(settingsProvider).apiKey.trim().isNotEmpty ||
-              ref.read(accountProvider).phase == AccountPhase.signedIn,
+        VoiceMode.auto => ref.read(quWorkAuthProvider).hasModelCredential,
         VoiceMode.system || VoiceMode.engine => false,
       },
 );

@@ -20,11 +20,12 @@ import 'aliyun_captcha.dart';
 const bool _wechatLoginAvailable = bool.fromEnvironment('QUWORK_WECHAT_LOGIN');
 
 class QuWorkLoginPage extends ConsumerStatefulWidget {
-  const QuWorkLoginPage({super.key, this.embedded = false});
+  const QuWorkLoginPage({super.key, this.embedded = false, this.onDone});
 
   /// The startup gate owns this page while the account is signed out. Once
   /// login succeeds the gate replaces it with the normal app shell.
   final bool embedded;
+  final VoidCallback? onDone;
 
   @override
   ConsumerState<QuWorkLoginPage> createState() => _QuWorkLoginPageState();
@@ -92,7 +93,10 @@ class _QuWorkLoginPageState extends ConsumerState<QuWorkLoginPage> {
     }
     final auth = ref.read(quWorkAuthProvider);
     final ok = await ref.read(quWorkAuthProvider.notifier).login(phone, code, wechatToken: auth.wechatBindingToken);
-    if (mounted && ok && !widget.embedded) Navigator.of(context).pop();
+    if (mounted && ok) {
+      widget.onDone?.call();
+      if (!widget.embedded) Navigator.of(context).pop();
+    }
   }
 
   Future<void> _wechatLogin() async {
@@ -119,18 +123,29 @@ class _QuWorkLoginPageState extends ConsumerState<QuWorkLoginPage> {
   Widget build(BuildContext context) {
     final auth = ref.watch(quWorkAuthProvider);
     final error = auth.error?.message;
-    if (auth.signedIn && !widget.embedded) {
+    if (auth.signedIn && auth.hasModelCredential) {
       return AppPage.list(
         title: context.l10n.quworkLoginTitle,
         children: [
           SettingsSectionLike(child: Text(auth.user!.label)),
           SettingsSectionLike(child: Text(context.l10n.quworkLoginSignedIn)),
+          SettingsSectionLike(child: Text(context.l10n.quworkUsageSummary)),
           SettingsSectionLike(
             child: FilledButton.tonal(
               onPressed: auth.busy ? null : () => ref.read(quWorkAuthProvider.notifier).signOut(),
               child: Text(context.l10n.quworkLoginSignOut),
             ),
           ),
+        ],
+      );
+    }
+    if (auth.signedIn && !auth.hasModelCredential) {
+      return AppPage.list(
+        title: context.l10n.quworkLoginTitle,
+        children: [
+          SettingsSectionLike(child: Text(auth.user!.label)),
+          SettingsSectionLike(child: Text(context.l10n.quworkLoginFailed)),
+          SettingsSectionLike(child: Text(context.l10n.quworkUsageSummary)),
         ],
       );
     }

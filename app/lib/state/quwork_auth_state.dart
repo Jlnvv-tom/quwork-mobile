@@ -270,10 +270,15 @@ class QuWorkAuthController extends Notifier<QuWorkAuthState> {
       final llmToken = map is Map && map['llmToken'] is String ? map['llmToken'] as String : null;
       if (token == null) throw const QuWorkApiException('token_expired', '登录已过期');
       final result = await _api.refresh(token);
+      final nextLlmToken = result.llmToken ?? llmToken;
       await _inOrder(
         () => _store.write(
           _recordKey,
-          jsonEncode({'token': result.token, 'expiresAt': result.expiresAt.toIso8601String(), 'llmToken': ?llmToken}),
+          jsonEncode({
+            'token': result.token,
+            'expiresAt': result.expiresAt.toIso8601String(),
+            'llmToken': ?nextLlmToken,
+          }),
         ),
       );
       if (!_live(generation)) return false;
@@ -281,7 +286,7 @@ class QuWorkAuthController extends Notifier<QuWorkAuthState> {
         phase: QuWorkAuthPhase.signedIn,
         user: result.user,
         accessTokenExpiresAt: result.expiresAt,
-        hasModelCredential: llmToken?.isNotEmpty == true,
+        hasModelCredential: nextLlmToken?.isNotEmpty == true,
       );
       return true;
     } on QuWorkApiException catch (error) {

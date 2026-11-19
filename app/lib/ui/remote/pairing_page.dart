@@ -17,11 +17,11 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../l10n/l10n.dart';
 import '../../remote/relay/relay_backend.dart';
-import '../../state/account_state.dart';
 import '../../state/android_features.dart' show operatingSystemProvider;
 import '../../state/hosts_state.dart';
+import '../../state/quwork_auth_state.dart';
 import '../../state/remote_pairing_state.dart';
-import '../account/account_widgets.dart' show AccountTile;
+import '../auth/quwork_login_page.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
@@ -108,14 +108,14 @@ class _RemotePairingPageState extends ConsumerState<RemotePairingPage> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final flow = ref.watch(remotePairingProvider);
-    final account = ref.watch(accountProvider);
+    final account = ref.watch(quWorkAuthProvider);
     ref.listen(remotePairingProvider.select((s) => s.host), (_, host) {
       if (host != null) unawaited(_finish(host));
     });
     // A shown code stays even if the account state flickers.
     final gated = !account.signedIn && flow.step.index < PairingStep.claiming.index;
     final Widget body = gated
-        ? const _DeepSeekGate()
+        ? const _QuWorkGate()
         : switch (flow.step) {
             PairingStep.scanning => _ScanStep(onCode: ref.read(remotePairingProvider.notifier).scanned),
             PairingStep.resolving => _Busy(label: l10n.remotePairReading),
@@ -180,13 +180,12 @@ class _Busy extends StatelessWidget {
   );
 }
 
-/// Pairing uses the DeepSeek account signed in on this phone: ask for it
-/// first. Only its account id goes along, never a password or token.
-class _DeepSeekGate extends ConsumerWidget {
-  const _DeepSeekGate();
+/// Pairing uses the QuWork account signed in on this phone: ask for it first.
+class _QuWorkGate extends StatelessWidget {
+  const _QuWorkGate();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     return Column(
@@ -216,7 +215,20 @@ class _DeepSeekGate extends ConsumerWidget {
             type: MaterialType.transparency,
             clipBehavior: Clip.antiAlias,
             shape: const RoundedSuperellipseBorder(borderRadius: AppShape.radiusLg),
-            child: const AccountTile(),
+            child: InkWell(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const QuWorkLoginPage())),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.account_circle_outlined),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(l10n.quworkLoginSignInHint)),
+                    const Icon(Icons.chevron_right),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ],
@@ -289,7 +301,7 @@ class _ConfirmStep extends ConsumerWidget {
     final theme = Theme.of(context);
     final colors = DshColors.of(context);
     final notifier = ref.read(remotePairingProvider.notifier);
-    final deepseekUserId = ref.watch(accountProvider.select((a) => a.profile?.id));
+    final quworkUserId = ref.watch(quWorkAuthProvider.select((a) => a.user?.id?.toString()));
     Widget fact(String label, String value) => Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -348,7 +360,7 @@ class _ConfirmStep extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         FilledButton(
-          onPressed: () => unawaited(notifier.confirm(deepseekUserId: deepseekUserId)),
+          onPressed: () => unawaited(notifier.confirm(deepseekUserId: quworkUserId)),
           child: Text(l10n.remotePairConfirm),
         ),
         const SizedBox(height: 4),

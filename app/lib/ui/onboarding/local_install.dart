@@ -14,13 +14,12 @@ import '../../runtime/runtime_bridge.dart';
 import '../../runtime/runtime_state.dart';
 import '../../state/engine_control.dart';
 import '../../state/hosts_state.dart';
-import '../../state/onboarding_state.dart';
-import '../../state/settings_state.dart';
+import '../../state/quwork_auth_state.dart';
 import '../remote/remote_screen.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
-import 'connect_page.dart';
+import '../auth/quwork_login_page.dart';
 import 'onboarding_scaffold.dart';
 import 'runtime_setup_page.dart';
 
@@ -66,17 +65,11 @@ class _LocalInstallPageState extends ConsumerState<LocalInstallPage> {
     final navigator = Navigator.of(context);
     unawaited(EngineControl.ensureStarted(container));
     if (widget.useWhenDone) container.read(activeHostProvider.notifier).select(HostRef.local);
-    if (container.read(settingsProvider).hasModelAccess || container.read(onboardingPrefsProvider).keySkipped) {
+    if (container.read(quWorkAuthProvider).signedIn) {
       navigator.pop();
       return;
     }
-    await navigator.pushReplacement<void, void>(
-      MaterialPageRoute(builder: (context) => ConnectPage(onDone: () => Navigator.of(context).pop())),
-    );
-    // Left without a key or a sign-in: don't bring the step back at launch.
-    if (!container.read(settingsProvider).hasModelAccess) {
-      await container.read(onboardingPrefsProvider.notifier).setKeySkipped(true);
-    }
+    await navigator.pushReplacement<void, void>(MaterialPageRoute(builder: (context) => const QuWorkLoginPage()));
   }
 
   @override

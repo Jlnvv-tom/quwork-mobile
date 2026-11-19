@@ -6,10 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../runtime/local_footprint.dart';
 import '../../runtime/runtime_state.dart';
-import '../../state/account_state.dart';
 import '../../state/android_features.dart';
 import '../../state/ask_ai.dart' show askAiAvailableProvider;
-import '../../state/balance_state.dart';
 import '../../state/connection_state.dart';
 import '../../state/engine_settings_state.dart';
 import '../../state/features_state.dart';
@@ -22,9 +20,6 @@ import '../../state/quwork_auth_state.dart';
 import '../../state/system_actions_state.dart';
 import '../../state/ui_mode_state.dart';
 import '../../state/update_state.dart';
-import '../account/account_page.dart';
-import '../account/account_widgets.dart';
-import '../chat/balance_widgets.dart' show formatMoney;
 import '../common/ask_ai.dart';
 import '../common/overview_card.dart';
 import '../common/search_capsule.dart';
@@ -37,7 +32,6 @@ import 'media_settings_page.dart';
 import '../features/feature_catalog.dart' show communityPage;
 import '../features/feature_format.dart' show permissionName;
 import '../features/permission_page.dart';
-import '../onboarding/api_key_page.dart' show maskApiKey;
 import '../pets/pet_settings_page.dart';
 import '../phone/phone_control_screen.dart';
 import '../phone/system_actions_page.dart';
@@ -409,97 +403,46 @@ class _QuWorkAccountTile extends ConsumerWidget {
   }
 }
 
-/// The hub's overview card: who is paying (DeepSeek account or API Key) and
-/// the balance, with the engine's state underneath. The card opens 账号, the
-/// engine line opens 引擎. With no runtime on this phone and a remote host in
-/// use there is nothing here to sign in to: the card shows that host and
-/// opens 远程主机.
-class SettingsOverview extends ConsumerStatefulWidget {
+/// The hub's overview card: the QuWork account that owns model usage, with the
+/// engine's state underneath. With no runtime on this phone and a remote host
+/// in use, the card shows that host and opens 远程主机.
+class SettingsOverview extends ConsumerWidget {
   const SettingsOverview({super.key});
 
   @override
-  ConsumerState<SettingsOverview> createState() => _SettingsOverviewState();
-}
-
-class _SettingsOverviewState extends ConsumerState<SettingsOverview> {
-  @override
-  void initState() {
-    super.initState();
-    // Opening settings counts as "open": refresh the balance (throttled).
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ref.read(balanceProvider.notifier).refresh();
-    });
-  }
-
-  void _push(Widget page) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final account = ref.watch(accountProvider);
-    final settings = ref.watch(settingsProvider);
-    final balance = ref.watch(balanceProvider);
-    final wallets = ref.watch(accountWalletBalanceProvider);
+    final auth = ref.watch(quWorkAuthProvider);
     final runtime = ref.watch(localRuntimeProvider);
     final engine = EngineStatusView.of(runtime);
     final colors = DshColors.of(context);
     final active = ref.watch(activeHostProvider);
     final remoteOnly = runtime.status.runtimeMissing && !active.isLocal;
 
-    // The account's wallets when signed in; otherwise the key's balance.
-    final money = account.signedIn && wallets != null ? balanceFromAccount(wallets) : balance.balance;
-    final low = !account.signedIn && balance.isLow;
-    final balanceLine = money == null
-        ? null
-        : low
-        ? l10n.hubSettingsBalanceLow(formatMoney(money))
-        : l10n.hubSettingsBalance(formatMoney(money));
-
     final Widget leading;
     final String title;
     final String subtitle;
     var warn = false;
-    var mono = false;
     // Set when the card shows the remote host: its link state.
     String? hostLink;
-    switch (account.phase) {
-      case AccountPhase.signedIn:
-        leading = AccountAvatar(profile: account.profile, size: OverviewCard.avatarSize);
-        title = account.profile?.displayName ?? l10n.hubSettingsAccount;
-        subtitle = balanceLine ?? account.profile?.contact ?? l10n.commonSignedIn;
-      case AccountPhase.signingIn:
-        leading = const OverviewGlyph(AppIcons.apiKey);
-        title = l10n.hubSettingsAccount;
-        subtitle = l10n.hubSettingsSigningIn;
-      case _ when remoteOnly:
-        final link = HostStatusView.ofLink(ref.watch(hostLinkStatusProvider(active)).value ?? HostLinkStatus.idle);
-        leading = OverviewGlyph(hostKindIcon(active.kind), tint: hostKindTint(active.kind));
-        title = ref.watch(hostNameProvider(active)) ?? l10n.commonRemoteHost;
-        subtitle = [l10n.commonRemoteHost, link.label].join(' · ');
-        warn = link.tone == StatusTone.error || link.tone == StatusTone.warn;
-        hostLink = link.label;
-      case _ when settings.hasApiKey:
-        leading = const OverviewGlyph(AppIcons.apiKey);
-        title = l10n.hubSettingsApiKey;
-        if (balance.status == BalanceStatus.invalidKey) {
-          subtitle = l10n.hubSettingsInvalidKey;
-          warn = true;
-        } else {
-          subtitle = balanceLine ?? maskApiKey(settings.apiKey);
-          mono = balanceLine == null;
-          warn = low;
-        }
-      case AccountPhase.unsupported:
-        leading = const OverviewGlyph(AppIcons.apiKey);
-        title = l10n.hubSettingsNoApiKey;
-        subtitle = l10n.hubSettingsApiKeyHint;
-      case AccountPhase.signedOut || AccountPhase.unknown:
-        leading = const OverviewGlyph(AppIcons.apiKey);
-        title = l10n.hubSettingsSignInAccount;
-        subtitle = l10n.hubSettingsOrApiKey;
+    if (remoteOnly) {
+      final link = HostStatusView.ofLink(ref.watch(hostLinkStatusProvider(active)).value ?? HostLinkStatus.idle);
+      leading = OverviewGlyph(hostKindIcon(active.kind), tint: hostKindTint(active.kind));
+      title = ref.watch(hostNameProvider(active)) ?? l10n.commonRemoteHost;
+      subtitle = [l10n.commonRemoteHost, link.label].join(' · ');
+      warn = link.tone == StatusTone.error || link.tone == StatusTone.warn;
+      hostLink = link.label;
+    } else {
+      leading = const OverviewGlyph(Icons.account_circle_outlined);
+      title = l10n.hubSettingsAccount;
+      subtitle = auth.signedIn
+          ? '${auth.user?.label ?? l10n.quworkLoginSignedIn} · ${l10n.quworkUsageSummary}'
+          : auth.phase == QuWorkAuthPhase.restoring
+          ? l10n.quworkLoginRestoring
+          : l10n.hubSettingsApiKeyHint;
     }
+
     final dsh = runtime.status.dshVersion;
-    // The card is 账号's way in (its title is whoever is signed in).
     return SpotAnchor(
       spot: SettingsIndex.entry(SettingsPageId.account),
       child: OverviewCard(
@@ -507,21 +450,23 @@ class _SettingsOverviewState extends ConsumerState<SettingsOverview> {
         title: Text(title),
         subtitle: Text(
           subtitle,
-          style: mono
-              ? AppType.monoLabel(color: Theme.of(context).colorScheme.onSurfaceVariant).copyWith(fontSize: 13)
-              : warn
+          style: warn
               ? TextStyle(color: colors.warning)
               : null,
         ),
         semanticLabel: hostLink != null
             ? l10n.hubSettingsHostSemantics(title, hostLink)
             : l10n.hubSettingsAccountSemantics(title, subtitle),
-        onTap: () => _push(hostLink != null ? const RemoteScreen() : const AccountPage()),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => hostLink != null ? const RemoteScreen() : const QuWorkLoginPage()),
+        ),
         footer: OverviewFooter(
           tone: engine.tone,
           text: [l10n.hubSettingsEngine, engine.label, if (dsh != null) 'DSH $dsh'].join(' · '),
         ),
-        onFooterTap: () => _push(const EngineScreen()),
+        onFooterTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const EngineScreen()),
+        ),
       ),
     );
   }

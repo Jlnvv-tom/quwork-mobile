@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 import '../../state/bots_state.dart';
+import '../../state/quwork_models_state.dart';
 import '../chat/model_sheet.dart';
 import '../common/discard_guard.dart';
 import '../common/list_page_row.dart';
@@ -72,10 +73,7 @@ class _NewBotPageState extends ConsumerState<NewBotPage> {
   /// The model it starts on: picked here, else the host's default.
   ModelSelection? _effectiveModel(DsBotTeam? team) {
     if (_model != null) return _model;
-    final ref = team?.defaultModel;
-    final slash = ref?.indexOf('/') ?? -1;
-    if (ref == null || slash <= 0) return null;
-    return ModelSelection(provider: ref.substring(0, slash), model: ref.substring(slash + 1));
+    return quWorkDefaultSelection(ref.read(quWorkModelsProvider));
   }
 
   Future<void> _create() async {

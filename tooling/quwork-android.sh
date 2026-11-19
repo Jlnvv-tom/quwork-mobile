@@ -38,6 +38,8 @@ done
 
 case "$BACKEND" in mock|dev|prod) ;; *) echo "backend 必须是 mock、dev 或 prod" >&2; exit 2 ;; esac
 [[ -f "$ROOT/tooling/env.sh" ]] && source "$ROOT/tooling/env.sh"
+CONFIG_FILE="${QUWORK_CONFIG_FILE:-$ROOT/tooling/quwork.env}"
+[[ -f "$CONFIG_FILE" ]] && source "$CONFIG_FILE"
 FLUTTER_BIN="${DSH_FLUTTER_BIN:-${FLUTTER:-${FLUTTER_ROOT:-}/bin/flutter}}"
 [[ -x "$FLUTTER_BIN" ]] || FLUTTER_BIN="$(command -v flutter || true)"
 [[ -n "$FLUTTER_BIN" && -x "$FLUTTER_BIN" ]] || { echo "找不到 Flutter，请设置 DSH_FLUTTER_BIN" >&2; exit 1; }

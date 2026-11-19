@@ -133,6 +133,18 @@ void main() {
       );
     });
 
+    test('a QuWork model credential skips the DeepSeek connection step', () {
+      expect(
+        initialOnboardingStep(
+          status: _status(RuntimePhase.installed, installed: _v),
+          hasApiKey: false,
+          hasQuWorkModelAccess: true,
+          prefs: seen,
+        ),
+        isNull,
+      );
+    });
+
     test('a failed install (error, nothing current installed) returns to setup', () {
       expect(
         initialOnboardingStep(status: _status(RuntimePhase.error), hasApiKey: true, prefs: seen),

@@ -35,11 +35,10 @@ export 'account_api.dart';
 /// Only the local engine qualifies: the browser on this phone must reach the
 /// Host's `/oauth/callback`, and a remote Host's loopback is not reachable.
 final accountApiProvider = Provider<AccountApi?>((ref) {
-  final conn = ref.watch(localConnectionProvider).value;
-  if (conn == null || !conn.isLocal) return null;
-  final origin = loopbackCallbackOrigin(ref.read(localRuntimeProvider).status.baseUrl);
-  if (origin == null) return null;
-  return DshAccountApi(conn.client, callbackOrigin: origin);
+  // QuWork is the only account system in the mobile product. Keep the
+  // upstream controller type for compatibility with shared screens and old
+  // sessions, but never expose the old DeepSeek account service.
+  return null;
 });
 
 /// Opens Platform pages (authorization, top-up) outside the app's WebView.

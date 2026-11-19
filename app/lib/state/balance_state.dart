@@ -226,26 +226,9 @@ class BalanceController extends Notifier<BalanceState> {
 
   @override
   BalanceState build() {
-    final key = ref.watch(settingsProvider.select((s) => s.apiKey.trim()));
-    if (key != _key) {
-      _key = key;
-      _lastAttempt = null;
-      _inflight = null;
-      _generation++;
-    }
     if (_threshold == null) unawaited(_loadThreshold());
     final threshold = _threshold ?? defaultLowBalanceThreshold;
-    if (key.isEmpty) {
-      // Signed in with a DeepSeek account instead of a key: use the account's wallets.
-      final account = ref.watch(accountWalletBalanceProvider);
-      final fromAccount = account == null ? null : balanceFromAccount(account);
-      if (fromAccount != null) {
-        return BalanceState(status: BalanceStatus.ok, balance: fromAccount, checkedAt: now(), threshold: threshold);
-      }
-      return BalanceState(status: BalanceStatus.noKey, threshold: threshold);
-    }
-    Future.microtask(refresh);
-    return BalanceState(threshold: threshold, loading: true);
+    return BalanceState(status: BalanceStatus.noKey, threshold: threshold);
   }
 
   Future<void> _loadThreshold() async {
@@ -263,48 +246,7 @@ class BalanceController extends Notifier<BalanceState> {
 
   /// Asks the API unless it was asked less than a minute ago.
   Future<void> refresh() {
-    if (!ref.mounted) return Future.value();
-    final key = _key;
-    if (key.isEmpty) {
-      final last = _lastAttempt;
-      if (ref.read(accountProvider).signedIn && (last == null || now().difference(last) >= minInterval)) {
-        _lastAttempt = now();
-        ref.invalidate(accountBalanceProvider);
-      }
-      return Future.value();
-    }
-    if (_inflight case final pending?) return pending;
-    final last = _lastAttempt;
-    if (last != null && now().difference(last) < minInterval) {
-      return Future.value();
-    }
-    _lastAttempt = now();
-    final generation = _generation;
-    final fetch = ref.read(balanceFetcherProvider);
-    if (!state.loading) state = state.copyWith(loading: true);
-    return _inflight = () async {
-      try {
-        final result = await fetch(key);
-        if (!ref.mounted || generation != _generation) return;
-        state = switch (result) {
-          BalanceOk(:final balance) => state.copyWith(
-            status: BalanceStatus.ok,
-            balance: balance,
-            checkedAt: now(),
-            loading: false,
-          ),
-          BalanceInvalidKey() => state.copyWith(
-            status: BalanceStatus.invalidKey,
-            clearBalance: true,
-            checkedAt: now(),
-            loading: false,
-          ),
-          BalanceUnavailable() => state.copyWith(status: BalanceStatus.unavailable, loading: false),
-        };
-      } finally {
-        if (generation == _generation) _inflight = null;
-      }
-    }();
+    return Future.value();
   }
 
   Future<void> setThreshold(double value) async {

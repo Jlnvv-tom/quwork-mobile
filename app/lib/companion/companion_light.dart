@@ -1,7 +1,6 @@
-// 轻量模式 (docs/design/companion.md §7): she talks to DeepSeek straight from
-// the phone, with no engine and no host. The same Messages API the engine's
-// DeepSeek adapter uses (@deepseek-ai/dsh-llm-deepseek), with the API key
-// saved in the app; her conversation is a small file next to the pack.
+// 轻量模式 (docs/design/companion.md §7): she talks to QuWork straight from
+// the phone, with no engine and no host. The request uses QuWork's OpenAI-
+// compatible model gateway and the logged-in account's model credential.
 
 import 'dart:async';
 import 'dart:convert';
@@ -12,11 +11,12 @@ import 'package:http/http.dart' as http;
 
 import 'companion_context.dart';
 
-const companionLightEndpoint = 'https://api.deepseek.com/anthropic/v1/messages';
+const companionLightBaseUrl = String.fromEnvironment('QUWORK_LLM_BASE_URL', defaultValue: 'https://llm.rrzu.com/v1');
+const companionLightEndpoint = '$companionLightBaseUrl/chat/completions';
 
 /// The fast model of the official route (text and images); thinking off, so a
 /// line comes back as quickly as she would say it.
-const companionLightModel = 'deepseek-flash';
+const companionLightModel = String.fromEnvironment('QUWORK_COMPANION_MODEL', defaultValue: 'deepseek-chat');
 
 /// One verbatim transcript line. Request-only context is assembled separately.
 class CompanionLine {
@@ -70,28 +70,30 @@ class CompanionLightError implements Exception {
 Stream<String> streamCompanionReply({
   required http.Client client,
   required String apiKey,
+  String model = companionLightModel,
+  String baseUrl = companionLightBaseUrl,
   required String system,
   required List<CompanionLine> lines,
   CompanionTurnContext? context,
   int maxTokens = 800,
   void Function(int input, int output)? onUsage,
 }) async* {
-  final request = http.Request('POST', Uri.parse(companionLightEndpoint))
+  final endpoint = '${baseUrl.replaceFirst(RegExp(r'/$'), '')}/chat/completions';
+  final request = http.Request('POST', Uri.parse(endpoint))
     ..headers.addAll({
       'content-type': 'application/json',
       'accept': 'text/event-stream',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      'authorization': 'Bearer $apiKey',
     })
     ..body = jsonEncode({
-      'model': companionLightModel,
+      'model': model,
       'stream': true,
       'max_tokens': maxTokens,
-      'thinking': {'type': 'disabled'},
-      'system': system,
-      'messages': companionRequestMessages([
-        for (final line in lines) (role: line.role, text: line.text),
-      ], context: context),
+      'stream_options': {'include_usage': true},
+      'messages': [
+        {'role': 'system', 'content': system},
+        ...companionRequestMessages([for (final line in lines) (role: line.role, text: line.text)], context: context),
+      ],
     });
   final http.StreamedResponse response;
   try {
@@ -114,25 +116,29 @@ Stream<String> streamCompanionReply({
       .transform(const LineSplitter())
       // A reply that stops arriving is a failed one, not a slow one.
       .timeout(const Duration(seconds: 45));
-  // message_start carries the input, message_delta the output so far; each
-  // is a running total, not an increment, so the largest one seen stands.
+  // Gateways may emit usage more than once; keep the largest total seen.
   int? input;
   int? output;
   void usageFrom(Object? usage) {
     if (usage is! Map) return;
     int? n(Object? v) => v is int && v >= 0 ? v : null;
-    if (n(usage['input_tokens']) case final fresh?) {
-      final all = fresh + (n(usage['cache_read_input_tokens']) ?? 0) + (n(usage['cache_creation_input_tokens']) ?? 0);
-      input = max(input ?? 0, all);
-    }
-    if (n(usage['output_tokens']) case final out?) output = max(output ?? 0, out);
+    final inputTokens = n(usage['prompt_tokens'] ?? usage['input_tokens']);
+    final outputTokens = n(usage['completion_tokens'] ?? usage['output_tokens']);
+    if (inputTokens != null) input = max(input ?? 0, inputTokens);
+    if (outputTokens != null) output = max(output ?? 0, outputTokens);
   }
 
+  var completed = false;
   try {
     await for (final line in events) {
       if (!line.startsWith('data:')) continue;
       final data = line.substring(5).trim();
-      if (data.isEmpty || data == '[DONE]') continue;
+      if (data.isEmpty) continue;
+      if (data == '[DONE]') {
+        completed = true;
+        if (input != null || output != null) onUsage?.call(input ?? 0, output ?? 0);
+        continue;
+      }
       final Object? event;
       try {
         event = jsonDecode(data);
@@ -140,31 +146,21 @@ Stream<String> streamCompanionReply({
         continue;
       }
       if (event is! Map) continue;
-      // An error event, or a bare {"error": …} (the API's own timeout answer has no type).
-      if (event['type'] == 'error' || (event['type'] == null && event['error'] != null)) {
+      if (event['error'] != null) {
         final error = event['error'];
-        final kind = error is Map ? error['type'] : null;
+        final kind = error is Map ? error['code'] ?? error['type'] : null;
         throw CompanionLightError(
-          kind == 'overloaded_error' || kind == 'rate_limit_error'
+          kind == 'overloaded_error' || kind == 'rate_limit_error' || kind == 'rate_limit_exceeded'
               ? CompanionLightFailure.busy
               : CompanionLightFailure.server,
           error is Map ? '${error['message']}' : '$error',
         );
       }
-      switch (event['type']) {
-        case 'content_block_delta':
-          final delta = event['delta'];
-          if (delta is Map && delta['type'] == 'text_delta' && delta['text'] is String) {
-            yield delta['text'] as String;
-          }
-        case 'message_start':
-          final message = event['message'];
-          if (message is Map) usageFrom(message['usage']);
-        case 'message_delta':
-          usageFrom(event['usage']);
-        case 'message_stop':
-          if (input != null || output != null) onUsage?.call(input ?? 0, output ?? 0);
-          return;
+      usageFrom(event['usage']);
+      final choices = event['choices'];
+      if (choices is List && choices.isNotEmpty && choices.first is Map) {
+        final delta = (choices.first as Map)['delta'];
+        if (delta is Map && delta['content'] is String) yield delta['content'] as String;
       }
     }
   } on CompanionLightError {
@@ -172,8 +168,7 @@ Stream<String> streamCompanionReply({
   } on Object catch (error) {
     throw CompanionLightError(CompanionLightFailure.network, '$error');
   }
-  // The connection ended before message_stop: the reply is incomplete, not done.
-  throw const CompanionLightError(CompanionLightFailure.network, 'ended before message_stop');
+  if (!completed) throw const CompanionLightError(CompanionLightFailure.network, 'ended before done');
 }
 
 /// Up to [limit] bytes of an error body, within [wait]; never more, never longer.

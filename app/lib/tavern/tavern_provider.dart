@@ -9,7 +9,8 @@ import 'package:dsh_tavern/dsh_tavern.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../state/settings_state.dart';
+import '../state/quwork_auth_state.dart';
+import '../state/quwork_models_state.dart';
 import 'deferred_tavern.dart';
 import 'tavern_channels.dart';
 import 'tavern_script_host.dart';
@@ -21,13 +22,39 @@ final tavernProvider = Provider<Tavern>((ref) {
     return openTavern('${support.path}/tavern');
   }());
   ref.onDispose(tavern.close);
-  final keys = ref.read(tavernChannelKeysProvider);
-  void configure(TavernSettings settings) =>
-      tavern.configure(tavernModelConfig(settings, appKey: () => ref.read(settingsProvider).apiKey, keys: keys));
+  void configure(TavernSettings settings) {
+    final models = ref.read(quWorkModelsProvider).models;
+    final model = models.firstOrNull?.id ?? settings.activeModel;
+    tavern.configure(
+      quWorkTavernModelConfig(
+        settings: settings,
+        model: model,
+        token: () => ref.read(quWorkAuthProvider.notifier).modelToken(),
+      ),
+    );
+  }
+
   configure(ref.read(tavernSettingsProvider));
   ref.listen(tavernSettingsProvider, (_, next) => configure(next));
+  ref.listen(quWorkAuthProvider, (_, _) => configure(ref.read(tavernSettingsProvider)));
+  ref.listen(quWorkModelsProvider, (_, _) => configure(ref.read(tavernSettingsProvider)));
   return tavern;
 });
+
+/// The roleplay surface uses the same QuWork bearer credential as ordinary
+/// chat. Saved third-party tavern channels are intentionally ignored for
+/// requests so they cannot bypass QuWork usage accounting.
+TavernModelConfig quWorkTavernModelConfig({
+  required TavernSettings settings,
+  required String model,
+  required Future<String?> Function() token,
+}) => TavernModelConfig(
+  apiKey: token,
+  baseUrl: const String.fromEnvironment('QUWORK_LLM_BASE_URL', defaultValue: 'https://llm.rrzu.com/v1'),
+  model: model,
+  deepseek: false,
+  thinking: settings.thinking,
+);
 
 /// What the engine talks to under [settings]: the channel in use, and the
 /// 辅助模型 when one is chosen. Each key is read on every call, the built-in
@@ -108,6 +135,6 @@ final tavernPersonaSelectionProvider = FutureProvider.family<PersonaSelection, S
 /// needs the app's key; an added one brings its own (or needs none).
 final tavernNeedsKeyProvider = Provider<bool>(
   (ref) =>
-      ref.watch(tavernSettingsProvider.select((s) => s.activeChannel == null)) &&
-      !ref.watch(settingsProvider.select((s) => s.hasApiKey)),
+      !ref.watch(quWorkAuthProvider.select((s) => s.hasModelCredential)) ||
+      ref.watch(quWorkModelsProvider).models.isEmpty,
 );

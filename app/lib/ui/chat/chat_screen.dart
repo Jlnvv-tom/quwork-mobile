@@ -22,6 +22,7 @@ import '../../speech/read_aloud.dart';
 import '../../speech/voice_cloud.dart';
 import '../../state/android_features.dart';
 import '../../state/account_state.dart';
+import '../../state/quwork_auth_state.dart';
 import '../speech/voice_call_page.dart';
 import '../../state/streaming_asr_state.dart';
 import '../../state/streaming_pcm_state.dart';
@@ -39,6 +40,7 @@ import '../../state/composer_insert.dart';
 import '../../state/phone_skill_use.dart';
 import '../../state/composer_quote.dart';
 import '../../state/connection_state.dart';
+import '../../state/quwork_models_state.dart';
 import '../../state/draft_store.dart';
 import '../../state/drawer_view_state.dart';
 import '../../state/engine_control.dart';
@@ -376,7 +378,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
       harmony: () => ref.read(operatingSystemProvider) == 'ohos',
       cloud: (mode) => ref.read(voiceCloudProvider)(mode),
       cloudLikely: () => ref.read(voiceCloudLikelyProvider)(),
-      signedIn: () => ref.read(accountProvider).signedIn,
+      signedIn: () => ref.read(quWorkAuthProvider).signedIn,
       liveWords: (onWords) async {
         final pcm = ref.read(streamingPcmCaptureProvider);
         final asr = ref.read(streamingAsrProvider);
@@ -1539,7 +1541,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
     final selection = sessionId == null ? ref.read(pendingModelProvider) : ref.read(chatProvider(sessionId)).model;
     return showModelSheet(
       context,
-      current: selection ?? ref.read(currentModelCatalogProvider)?.defaultSelection,
+      current: selection ?? ref.read(quWorkMergedCatalogProvider)?.defaultSelection,
       onSelected: _modelTarget(),
     );
   }

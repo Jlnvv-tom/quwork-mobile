@@ -4,16 +4,14 @@ import 'package:flutter/material.dart';
 import '../../../l10n/l10n.dart';
 import '../../../state/subscriptions_state.dart' show subscriptionLabel;
 import '../../common/expand_reveal.dart';
-import '../../onboarding/api_key_page.dart';
-import '../../providers/providers_page.dart';
+import '../../auth/quwork_login_page.dart';
 import '../../providers/subscription_sheet.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/theme.dart';
 import 'stream_row.dart';
 import 'turn_failure_text.dart';
 
-/// pi-ai's wording when a subscription's stored grant can't be refreshed
-/// (revoked, expired, signed out elsewhere) or is gone from its route.
+/// Upstream wording when a subscription's stored grant can't be refreshed.
 final _grantLost = RegExp(
   r'OAuth (?:refresh failed|refresh returned a token that expires too soon'
   r'|auth derivation failed) for ([\w.-]+)'
@@ -63,11 +61,7 @@ class _NoticeRowState extends State<NoticeRow> {
           return (AppIcons.noApiKey, appL10n.chatSubscriptionExpired(subscriptionLabel(lapsed)));
         }
         if (failure?.code == 'MISSING_CREDENTIAL') {
-          // pi-ai routes are the 模型渠道; the bare one is DeepSeek's key.
-          if (failure!.message.startsWith('llm-pi-ai')) {
-            return (AppIcons.noApiKey, appL10n.chatProviderKeyMissing);
-          }
-          return (AppIcons.noApiKey, appL10n.chatDeepSeekKeyMissing);
+          return (AppIcons.account, appL10n.quworkLoginSignInHint);
         }
         return (AppIcons.error, turnFailureText(failure?.code, message: failure?.message));
       case 'aborted':
@@ -109,7 +103,7 @@ class _NoticeRowState extends State<NoticeRow> {
       action = (
         label: l10n.chatGoToSettings,
         onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => pi ? const ProvidersPage() : const ApiKeyPage(onboarding: false)),
+          MaterialPageRoute<void>(builder: (_) => const QuWorkLoginPage()),
         ),
       );
     } else {

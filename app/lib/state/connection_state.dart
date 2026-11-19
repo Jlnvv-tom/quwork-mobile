@@ -17,8 +17,6 @@ import '../runtime/runtime_state.dart';
 import 'hosts_state.dart';
 import 'permission_default_repair.dart';
 import 'provider_backend.dart';
-import 'provider_keys.dart';
-import 'settings_state.dart';
 
 /// A connected DSH host: the on-device engine, an SSH host or a relay device.
 class HostConnection {
@@ -115,17 +113,6 @@ class LocalConnectionController extends AsyncNotifier<HostConnection?> {
       ),
     );
 
-    // Keep DSH's own credential store in sync with the key saved in the app.
-    r.listen(settingsProvider.select((s) => s.apiKey), (prev, next) {
-      if (next == prev) return;
-      if (next.isNotEmpty) {
-        unawaited(_pushKey(client, next));
-      } else if (prev != null && prev.isNotEmpty) {
-        unawaited(client.clearProviderKey().catchError((_) {}));
-      }
-    });
-    final apiKey = r.read(settingsProvider).apiKey;
-    if (apiKey.isNotEmpty) await _pushKey(client, apiKey);
     if (!r.mounted) return null;
     if (readyFailure case final failure?) Error.throwWithStackTrace(failure.$1, failure.$2);
     final connection = HostConnection(client: client, isLocal: true);
@@ -133,14 +120,6 @@ class LocalConnectionController extends AsyncNotifier<HostConnection?> {
     state = AsyncData(connection);
     await ready;
     if (!r.mounted) return null;
-    // Custom providers' keys kept on the phone go back in where the engine
-    // lost them; never awaited (the catalog refreshes when they land).
-    unawaited(
-      healProviderKeys(
-        ClientProviderBackend(client, isLocal: true, hostLabel: appL10n.commonThisPhone),
-        r.read(providerKeyVaultProvider),
-      ).catchError((_) => const <String>[]),
-    );
     // An Auto default an older app saved keeps DSH's permission presets from
     // starting; it comes out once, with a restart.
     unawaited(clearAutoDefaultPreset(r.container));
@@ -148,13 +127,6 @@ class LocalConnectionController extends AsyncNotifier<HostConnection?> {
     return connection;
   }
 
-  Future<void> _pushKey(DshClient client, String key) async {
-    try {
-      await client.setProviderKey(key);
-    } catch (_) {
-      // Rejected when the launch environment already provides the key; harmless.
-    }
-  }
 }
 
 final localConnectionProvider = AsyncNotifierProvider<LocalConnectionController, HostConnection?>(

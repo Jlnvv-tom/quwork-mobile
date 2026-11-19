@@ -4763,6 +4763,9 @@ class L10nZh extends L10n {
   String get quworkLoginSignOut => '退出登录';
 
   @override
+  String get quworkUsageSummary => '模型用量由 QuWork 账号统一统计';
+
+  @override
   String get quworkCaptchaTitle => '人机验证';
 
   @override
@@ -5398,10 +5401,10 @@ class L10nZh extends L10n {
   String get companionModeFullHint => '主机上的 DSH 引擎，带工具和手机操控';
 
   @override
-  String get companionLightNoKey => '轻量模式要用 DeepSeek API Key，在设置里填上就能和我聊啦。';
+  String get companionLightNoKey => '轻量模式需要先登录 QuWork，并开通可用模型。登录后就能和我聊啦。';
 
   @override
-  String get companionLightBadKey => 'API Key 好像不对，或者已经失效了。';
+  String get companionLightBadKey => 'QuWork 模型凭据好像无效，或者已经失效了。';
 
   @override
   String get companionLightBusy => '那边有点忙，等一下再和我说吧。';
@@ -5889,7 +5892,7 @@ class L10nZh extends L10n {
   String get companionAdaptUndone => '好，换回原来的样子了。';
 
   @override
-  String get companionAdaptNoKey => '要用你的模型帮我适配，先在设置里填上 API Key。';
+  String get companionAdaptNoKey => '要用 QuWork 模型帮我适配，请先登录 QuWork 并开通模型权限。';
 
   @override
   String companionAdaptFailed(String reason) {
@@ -9073,7 +9076,7 @@ class L10nZh extends L10n {
   String get hubSettingsLicenses => '开源许可';
 
   @override
-  String get hubSettingsAccount => 'DeepSeek 账号';
+  String get hubSettingsAccount => 'QuWork 账号';
 
   @override
   String get hubSettingsSigningIn => '正在登录…';
@@ -9082,16 +9085,16 @@ class L10nZh extends L10n {
   String get hubSettingsInvalidKey => 'Key 无效，查不到余额';
 
   @override
-  String get hubSettingsNoApiKey => '未设置 API Key';
+  String get hubSettingsNoApiKey => '未登录 QuWork';
 
   @override
-  String get hubSettingsApiKeyHint => '填写 Key 后即可对话';
+  String get hubSettingsApiKeyHint => '登录 QuWork 后即可对话';
 
   @override
-  String get hubSettingsSignInAccount => '登录 DeepSeek 账号';
+  String get hubSettingsSignInAccount => '登录 QuWork 账号';
 
   @override
-  String get hubSettingsOrApiKey => '或填写 API Key';
+  String get hubSettingsOrApiKey => '模型用量由 QuWork 统一统计';
 
   @override
   String get hubPluginShare => '分享插件';
@@ -9253,7 +9256,7 @@ class L10nZh extends L10n {
   }
 
   @override
-  String get hubSettingsApiKey => 'DeepSeek API Key';
+  String get hubSettingsApiKey => 'QuWork 模型凭据';
 
   @override
   String hubPluginBrowserFailed(String address) {
@@ -16874,10 +16877,10 @@ class L10nZh extends L10n {
   String get remotePairSubtitle => '不用注册 Remote 账号，也不会传 DeepSeek 密码或登录凭据';
 
   @override
-  String get remotePairNeedsDeepSeek => '先登录 DeepSeek 账号';
+  String get remotePairNeedsDeepSeek => '先登录 QuWork 账号';
 
   @override
-  String get remotePairNeedsDeepSeekBody => '扫码配对要先在 DSH Go 里登录 DeepSeek 账号。配对时只附带账号 ID 用来标记这台手机，不传密码、Cookie 或 Token。';
+  String get remotePairNeedsDeepSeekBody => '扫码配对要先在 QuWork 中登录账号。配对使用 QuWork 账号标记这台手机，不传 DeepSeek 密码、Cookie 或 Token。';
 
   @override
   String get remotePairScanHint => '对准电脑上 Remote 插件显示的配对二维码';
@@ -17766,22 +17769,22 @@ class L10nZh extends L10n {
   String get shellGetApiKey => '获取 API Key';
 
   @override
-  String get shellConnectDeepSeek => '连接 DeepSeek';
+  String get shellConnectDeepSeek => '连接 QuWork';
 
   @override
-  String get shellConnectDeepSeekMessage => '登录 DeepSeek 账号即可开始，无需 API Key';
+  String get shellConnectDeepSeekMessage => '登录 QuWork 账号后即可开始对话，模型用量由 QuWork 统一统计';
 
   @override
   String get shellAccountSignInUnsupported => '当前引擎不支持账号登录';
 
   @override
-  String get shellSignInDeepSeek => '用 DeepSeek 账号登录';
+  String get shellSignInDeepSeek => '登录 QuWork 账号';
 
   @override
-  String get shellUseApiKey => '使用 API Key';
+  String get shellUseApiKey => '登录 QuWork';
 
   @override
-  String get shellOtherProviders => '其他模型渠道';
+  String get shellOtherProviders => '其他模型渠道已由 QuWork 管理';
 
   @override
   String shellOnboardingStep(int step, int steps) {
@@ -18631,13 +18634,13 @@ class L10nZh extends L10n {
   String get speechVoiceHello => '你好，这是朗读的声音。';
 
   @override
-  String get speechVoiceDeepseek => 'DeepSeek';
+  String get speechVoiceDeepseek => 'QuWork 语音';
 
   @override
-  String get speechVoiceDeepseekHint => '登录的 DeepSeek 账号付费；没登录，或账号不能用于语音时，用设置里的 API Key。不用另外配置';
+  String get speechVoiceDeepseekHint => '语音能力由 QuWork 账号统一管理；当前版本需要服务端提供 QuWork 语音接口。';
 
   @override
-  String get speechVoiceDeepseekFooter => '按朗读的字数计费，价格见 DeepSeek 开放平台。读出前会去掉代码块、表格和链接地址。';
+  String get speechVoiceDeepseekFooter => '语音请求不会改用 DeepSeek 官方账号或 API Key。读出前会去掉代码块、表格和链接地址。';
 
   @override
   String get speechVoiceStella => '海星（女声）';
@@ -25393,25 +25396,25 @@ class L10nZh extends L10n {
   String get viewModelEffort => '思考深度';
 
   @override
-  String get viewModelKeyRequired => '需要 API Key';
+  String get viewModelKeyRequired => '需要登录 QuWork';
 
   @override
-  String get viewModelProvidersHint => '支持 DeepSeek 和其他模型渠道';
+  String get viewModelProvidersHint => '登录 QuWork 后使用账号可用模型';
 
   @override
-  String get viewModelEnterKey => '填写 API Key';
+  String get viewModelEnterKey => '登录 QuWork';
 
   @override
-  String get viewModelAddProvider => '添加其他渠道';
+  String get viewModelAddProvider => '登录 QuWork';
 
   @override
   String get viewModelNone => '暂无可用模型';
 
   @override
-  String get viewModelKeyHint => 'Key 可能尚未生效或已失效';
+  String get viewModelKeyHint => 'QuWork 模型可能尚未同步，请刷新或重新登录';
 
   @override
-  String get viewModelManageProviders => '管理渠道';
+  String get viewModelManageProviders => '管理 QuWork 模型';
 
   @override
   String get viewContinuePrompt => '接着附件里这段对话聊：';

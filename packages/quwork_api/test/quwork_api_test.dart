@@ -90,6 +90,37 @@ void main() {
     );
   });
 
+  test('keeps a refreshed model credential when the refresh response includes it', () async {
+    final client = MockClient((request) async {
+      expect(request.headers['Authorization'], 'Bearer access-token');
+      if (request.url.path == '/api/user/refresh') {
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'data': {
+              'token': 'next-access-token',
+              'expire': 1791714075,
+              'llm_token': 'next-llm-token',
+            },
+          }),
+          200,
+        );
+      }
+      expect(request.url.path, '/api/user/self');
+      return http.Response(
+        jsonEncode({'success': true, 'data': {'id': 7, 'phone': '138****0000'}}),
+        200,
+      );
+    });
+    final api = QuWorkAuthApi(
+      baseUri: Uri.parse('https://dev-llm.rrzuji.com'),
+      client: client,
+    );
+    final result = await api.refresh('access-token');
+    expect(result.token, 'next-access-token');
+    expect(result.llmToken, 'next-llm-token');
+  });
+
   test('parses WeChat login URL and binding-required callback', () async {
     final client = MockClient((request) async {
       if (request.url.path == '/api/oauth/wechat/url') {

@@ -9,11 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
+import '../../state/quwork_auth_state.dart';
+import '../../state/quwork_models_state.dart';
 import '../../tavern/tavern_settings.dart';
+import '../auth/quwork_login_page.dart';
 import '../settings/settings_widgets.dart';
 import '../theme/app_icons.dart';
-import '../workspace/text_prompt.dart';
-import 'tavern_channels_page.dart';
 
 /// [keyPrefix] tells the two places apart (`tavern` / `tavern-session`);
 /// [tinted] false draws the icons as on secondary pages; [open] pushes a
@@ -29,65 +30,47 @@ List<Widget> tavernModelRows(
   final l10n = context.l10n;
   final settings = ref.watch(tavernSettingsProvider);
   final controller = ref.read(tavernSettingsProvider.notifier);
-  final channel = settings.activeChannel;
+  final auth = ref.watch(quWorkAuthProvider);
+  final models = ref.watch(quWorkModelsProvider).models;
   final push = open ?? (route) => unawaited(Navigator.of(context).push(route));
-  final typed = !tavernModels.contains(settings.model);
-  Future<void> typeModel() async {
-    final name = await showTextPrompt(
-      context,
-      title: l10n.tavernModelName,
-      initial: typed ? settings.model : '',
-      hint: 'deepseek-…',
-      mono: true,
-      validate: (text) => text.isEmpty ? l10n.tavernChannelModelMissing : null,
-    );
-    if (name != null) await controller.setModel(name);
-  }
+  final modelIds = [for (final model in models) model.id];
+  final selectedModel = modelIds.contains(settings.model) ? settings.model : modelIds.firstOrNull;
 
   return [
     SettingsTile(
-      key: ValueKey('$keyPrefix-channel'),
+      key: ValueKey('$keyPrefix-quwork'),
       icon: AppIcons.providers,
       tinted: tinted,
-      title: l10n.tavernChannel,
-      value: Text(channel?.name ?? l10n.tavernChannelDeepSeek),
-      onTap: () => push(TavernChannelsPage.route()),
+      title: l10n.quworkLoginTitle,
+      value: Text(auth.signedIn ? l10n.quworkLoginSignedIn : l10n.quworkLoginSignInHint),
+      onTap: () => push(MaterialPageRoute<void>(builder: (_) => const QuWorkLoginPage())),
     ),
-    if (channel == null)
-      SettingsSegmentTile<String?>(
-        key: ValueKey('$keyPrefix-model'),
-        icon: AppIcons.model,
-        tinted: tinted,
-        title: l10n.tavernSettingsModel,
-        segments: [
-          PillSegment(tavernModels[0], l10n.tavernModelFlash),
-          PillSegment(tavernModels[1], l10n.tavernModelPro),
-          PillSegment(null, typed ? settings.model : l10n.tavernNumberCustom),
-        ],
-        selected: typed ? null : settings.model,
-        onChanged: (model) => unawaited(model == null ? typeModel() : controller.setModel(model)),
-        onReselect: (model) {
-          if (model == null) unawaited(typeModel());
-        },
-      )
-    else
+    if (models.isEmpty)
       SettingsTile(
         key: ValueKey('$keyPrefix-model'),
         icon: AppIcons.model,
         tinted: tinted,
         title: l10n.tavernSettingsModel,
-        value: Text(channel.model),
-        onTap: () => push(TavernChannelEditPage.route(channel)),
-      ),
-    if (settings.deepseekApi)
-      SettingsSwitchTile(
-        key: ValueKey('$keyPrefix-thinking'),
-        icon: AppIcons.generating,
+        value: Text(l10n.quworkLoginSignInHint),
+      )
+    else
+      SettingsSegmentTile<String>(
+        key: ValueKey('$keyPrefix-model'),
+        icon: AppIcons.model,
         tinted: tinted,
-        title: l10n.tavernThinking,
-        subtitle: thinkingSubtitle ? l10n.tavernThinkingSubtitle : null,
-        value: settings.thinking,
-        onChanged: (on) => unawaited(controller.setThinking(on)),
+        title: l10n.tavernSettingsModel,
+        segments: [for (final model in models) PillSegment(model.id, model.name ?? model.id)],
+        selected: selectedModel ?? modelIds.first,
+        onChanged: (model) => unawaited(controller.setModel(model)),
       ),
+    SettingsSwitchTile(
+      key: ValueKey('$keyPrefix-thinking'),
+      icon: AppIcons.generating,
+      tinted: tinted,
+      title: l10n.tavernThinking,
+      subtitle: thinkingSubtitle ? l10n.tavernThinkingSubtitle : null,
+      value: settings.thinking,
+      onChanged: (on) => unawaited(controller.setThinking(on)),
+    ),
   ];
 }

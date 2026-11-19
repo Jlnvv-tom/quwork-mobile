@@ -11,9 +11,12 @@ String _sse(List<Map<String, Object?>> events) =>
     [for (final event in events) 'event: ${event['type']}\ndata: ${jsonEncode(event)}\n\n'].join();
 
 Map<String, Object?> _text(String text) => {
-  'type': 'content_block_delta',
-  'index': 0,
-  'delta': {'type': 'text_delta', 'text': text},
+  'choices': [
+    {
+      'index': 0,
+      'delta': {'role': 'assistant', 'content': text},
+    },
+  ],
 };
 
 MockClient _answering(int status, String body, {void Function(http.BaseRequest, String)? seen}) =>
@@ -24,19 +27,20 @@ MockClient _answering(int status, String body, {void Function(http.BaseRequest, 
 
 void main() {
   group('reply', () {
-    test('asks DeepSeek the way the engine does and streams her words', () async {
+    test('asks QuWork with its OpenAI-compatible contract and streams her words', () async {
       late http.BaseRequest request;
       late Map<String, Object?> body;
       final client = _answering(
         200,
         _sse([
-          {'type': 'message_start', 'message': <String, Object?>{}},
-          {'type': 'ping'},
-          _text('[表情:开心]'),
-          _text('你来啦。'),
-          {'type': 'message_delta', 'delta': <String, Object?>{}},
-          {'type': 'message_stop'},
-        ]),
+              _text('[表情:开心]'),
+              _text('你来啦。'),
+              {
+                'choices': [],
+                'usage': {'prompt_tokens': 4, 'completion_tokens': 8},
+              },
+            ]) +
+            'data: [DONE]\n\n',
         seen: (r, b) {
           request = r;
           body = jsonDecode(b) as Map<String, Object?>;
@@ -45,18 +49,19 @@ void main() {
       final words = await streamCompanionReply(
         client: client,
         apiKey: 'sk-test',
+        model: 'quwork-chat',
+        baseUrl: 'https://quwork.test/v1',
         system: '你是鲸鱼娘',
         lines: const [CompanionLine.user('你好')],
       ).toList();
       expect(words.join(), '[表情:开心]你来啦。');
-      expect(request.url.toString(), 'https://api.deepseek.com/anthropic/v1/messages');
-      expect(request.headers['x-api-key'], 'sk-test');
-      expect(request.headers['anthropic-version'], '2023-06-01');
-      expect(body['model'], 'deepseek-flash');
+      expect(request.url.toString(), 'https://quwork.test/v1/chat/completions');
+      expect(request.headers['authorization'], 'Bearer sk-test');
+      expect(body['model'], 'quwork-chat');
       expect(body['stream'], isTrue);
-      expect(body['thinking'], {'type': 'disabled'});
-      expect(body['system'], '你是鲸鱼娘');
+      expect(body['stream_options'], {'include_usage': true});
       expect(body['messages'], [
+        {'role': 'system', 'content': '你是鲸鱼娘'},
         {'role': 'user', 'content': '你好'},
       ]);
     });
@@ -76,36 +81,20 @@ void main() {
 
       expect(
         await heard([
-          {
-            'type': 'message_start',
-            'message': {
-              'usage': {'input_tokens': 900, 'cache_read_input_tokens': 300, 'output_tokens': 1},
-            },
-          },
-          _text('你来啦。'),
-          // Running totals, not increments.
-          {
-            'type': 'message_delta',
-            'delta': <String, Object?>{},
-            'usage': {'output_tokens': 20},
-          },
-          {
-            'type': 'message_delta',
-            'delta': <String, Object?>{},
-            'usage': {'input_tokens': 0, 'output_tokens': 42},
-          },
-          {'type': 'message_stop'},
-        ]),
+              _text('你来啦。'),
+              {
+                'choices': [],
+                'usage': {'prompt_tokens': 900, 'completion_tokens': 20},
+              },
+              {
+                'choices': [],
+                'usage': {'prompt_tokens': 1200, 'completion_tokens': 42},
+              },
+            ]) +
+            'data: [DONE]\n\n',
         [(1200, 42)],
       );
-      expect(
-        await heard([
-          {'type': 'message_start', 'message': <String, Object?>{}},
-          _text('你来啦。'),
-          {'type': 'message_stop'},
-        ]),
-        isEmpty,
-      );
+      expect(await heard([_text('你来啦。')]) + 'data: [DONE]\n\n', isEmpty);
     });
 
     test('a refused key, a busy model and an error event say which', () async {
@@ -133,8 +122,7 @@ void main() {
             _sse([
               _text('嗯'),
               {
-                'type': 'error',
-                'error': {'type': 'overloaded_error', 'message': 'Overloaded'},
+                'error': {'code': 'overloaded_error', 'message': 'Overloaded'},
               },
             ]),
           ),

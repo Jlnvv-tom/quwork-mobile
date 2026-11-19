@@ -20,6 +20,7 @@ import '../../l10n/l10n.dart';
 import '../../speech/deepseek_speech.dart';
 import '../../speech/speech_settings.dart';
 import '../../state/account_state.dart';
+import '../../state/quwork_auth_state.dart';
 import '../../state/android_features.dart' show operatingSystemProvider;
 import '../providers/provider_widgets.dart';
 import '../settings/settings_widgets.dart';
@@ -278,7 +279,7 @@ class _CompanionVoicePageState extends ConsumerState<CompanionVoicePage> {
     return switch (reason) {
       'no-phone-voice' => l10n.companionVoiceUnavailable,
       'not-set-up' => l10n.companionVoiceNotSetUp,
-      'no-deepseek' => ref.read(accountProvider).signedIn ? l10n.speechAccountUnusable : l10n.speechNoCredential,
+      'no-deepseek' => ref.read(quWorkAuthProvider).signedIn ? l10n.speechAccountUnusable : l10n.speechNoCredential,
       _ when reason.startsWith('deepseek ') => switch (reason.split(' ')[1]) {
         'noCredential' => l10n.speechNoCredential,
         'accountUnusable' => l10n.speechAccountUnusable,

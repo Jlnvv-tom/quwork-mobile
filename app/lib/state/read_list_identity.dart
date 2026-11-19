@@ -10,11 +10,11 @@ import 'package:path_provider/path_provider.dart';
 import '../runtime/local_paths.dart';
 import '../runtime/runtime_bridge.dart';
 import '../runtime/runtime_state.dart';
-import 'account_state.dart';
 import 'connection_state.dart';
 import 'hosts_state.dart';
 import 'read_list_epoch.dart';
 import 'settings_state.dart';
+import 'quwork_auth_state.dart';
 
 /// The source of a *display* snapshot. No endpoint token, password, header or
 /// credential value is retained. The format version separates future DTOs.
@@ -154,29 +154,21 @@ final readListIdentityProvider = Provider<ReadListIdentity?>((ref) {
       final version = runtime.status.installedVersion;
       if (resetting || !runtime.loaded || root == null || version == null || version.isEmpty) return null;
       if (!ref.watch(settingsProvider.select((s) => s.loaded))) return null;
-      // AccountController deliberately keeps the last known login across a
-      // process disconnect. Unknown identities are never inferred as signed out.
-      final account = ref.watch(accountProvider);
-      final accountController = ref.read(accountProvider.notifier);
-      if (connection == null
-          ? !accountController.readListIdentityKnown
-          : !accountController.readListIdentityFor(connection.client)) {
+      // QuWork is the product account boundary. The old engine-owned
+      // DeepSeek account is intentionally not consulted here: its absence
+      // must not make a QuWork login look like an unknown local identity.
+      final auth = ref.watch(quWorkAuthProvider);
+      final accountId = auth.user?.id?.toString();
+      if (!auth.signedIn || accountId == null || accountId.length > 256 || root.length > 4096 || version.length > 256) {
         return null;
       }
-      final accountId = switch (account.phase) {
-        AccountPhase.signedIn => account.profile?.id,
-        AccountPhase.signedOut => 'signed-out',
-        AccountPhase.unsupported => 'unsupported',
-        _ => null,
-      };
-      if (accountId == null || accountId.length > 256 || root.length > 4096 || version.length > 256) return null;
       return ReadListIdentity.of([
         'local',
         root,
         version,
         runtime.status.mode.name,
         rootEpoch.generation,
-        account.phase.name,
+        'quwork',
         accountId,
         epoch,
       ]);

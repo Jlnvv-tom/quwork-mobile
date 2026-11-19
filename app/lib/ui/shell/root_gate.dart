@@ -55,6 +55,7 @@ OnboardingStep? initialOnboardingStep({
   required bool hasApiKey,
   required OnboardingPrefs prefs,
   bool hasCustomProvider = false,
+  bool hasQuWorkModelAccess = false,
 }) {
   final installedCurrent = status.installedVersion != null && status.installedVersion == status.bundledVersion;
   final needsRuntime = switch (status.phase) {
@@ -66,7 +67,7 @@ OnboardingStep? initialOnboardingStep({
   // a remote host.
   if (prefs.setupStep case final resume?
       when !prefs.localDeclined && (installedCurrent || status.installedVersion == null)) {
-    final connected = hasApiKey || hasCustomProvider || prefs.keySkipped;
+    final connected = hasQuWorkModelAccess;
     return switch (resume) {
       SetupStep.appearance => OnboardingStep.appearance,
       SetupStep.access => OnboardingStep.access,
@@ -83,7 +84,9 @@ OnboardingStep? initialOnboardingStep({
     if (!runtimeStepAsks(status)) return OnboardingStep.runtime;
     return OnboardingStep.runtime;
   }
-  if (!hasApiKey && !hasCustomProvider && !prefs.keySkipped) return OnboardingStep.apiKey;
+  if (!hasQuWorkModelAccess) {
+    return OnboardingStep.apiKey;
+  }
   return null;
 }
 
@@ -141,7 +144,7 @@ class _RootGateState extends ConsumerState<RootGate> {
     unawaited(EngineControl.ensureStarted(_container));
     final settings = ref.read(settingsProvider);
     final prefs = ref.read(onboardingPrefsProvider);
-    _goTo(settings.hasModelAccess || prefs.keySkipped ? null : OnboardingStep.apiKey);
+    _goTo(_hasModelAccess(settings, prefs) ? null : OnboardingStep.apiKey);
   }
 
   void _afterKey() {
@@ -188,7 +191,7 @@ class _RootGateState extends ConsumerState<RootGate> {
   }
 
   void _afterAccess() {
-    final connected = ref.read(settingsProvider).hasModelAccess || ref.read(onboardingPrefsProvider).keySkipped;
+    final connected = _hasModelAccess(ref.read(settingsProvider), ref.read(onboardingPrefsProvider));
     if (connected) return _finishBeside();
     unawaited(_prefs.setSetupStep(SetupStep.connect));
     _goTo(OnboardingStep.apiKey);
@@ -212,7 +215,7 @@ class _RootGateState extends ConsumerState<RootGate> {
     _leaveBeside();
     final settings = ref.read(settingsProvider);
     final prefs = ref.read(onboardingPrefsProvider);
-    _goTo(settings.hasModelAccess || prefs.keySkipped ? null : OnboardingStep.apiKey);
+    _goTo(_hasModelAccess(settings, prefs) ? null : OnboardingStep.apiKey);
   }
 
   void _leaveBeside() {
@@ -261,6 +264,11 @@ class _RootGateState extends ConsumerState<RootGate> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(ref.read(diagnosticsPublisherProvider).publish());
     });
+  }
+
+  bool _hasModelAccess(AppSettings settings, OnboardingPrefs prefs) {
+    final auth = ref.read(quWorkAuthProvider);
+    return auth.signedIn && auth.hasModelCredential;
   }
 
   void _maybeAutoStart() {
@@ -363,6 +371,7 @@ class _RootGateState extends ConsumerState<RootGate> {
           status: runtime.status,
           hasApiKey: settings.hasApiKey,
           hasCustomProvider: settings.customProviderIds.isNotEmpty,
+          hasQuWorkModelAccess: quworkAuth.signedIn && quworkAuth.hasModelCredential,
           prefs: prefs,
         );
         _chooseRuntime = runtimeStepAsks(runtime.status);

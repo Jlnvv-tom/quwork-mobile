@@ -48,7 +48,8 @@ import '../../state/chat_state.dart';
 import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
 import '../../state/sessions_state.dart';
-import '../../state/settings_state.dart';
+import '../../state/quwork_auth_state.dart';
+import '../../state/quwork_models_state.dart';
 import '../../state/voice_model_state.dart';
 import '../../state/voice_settings.dart';
 import '../../state/voice_state.dart';
@@ -116,6 +117,19 @@ class _CompanionPageState extends ConsumerState<CompanionPage> implements Compan
   /// or a new pack always builds a fresh one: a retired stage has no server and never restarts.
   int _stageRun = 0;
   String? _failure;
+
+  Future<({String model, String token})?> _quWorkModelAccess() async {
+    final auth = ref.read(quWorkAuthProvider);
+    if (!auth.signedIn || !auth.hasModelCredential) return null;
+    var models = ref.read(quWorkModelsProvider).models;
+    if (models.isEmpty) {
+      await ref.read(quWorkModelsProvider.notifier).refresh();
+      models = ref.read(quWorkModelsProvider).models;
+    }
+    final token = await ref.read(quWorkAuthProvider.notifier).modelToken();
+    if (token == null || token.isEmpty || models.isEmpty) return null;
+    return (model: models.first.id, token: token);
+  }
 
   /// The failed screen offers 重试: her pack is still on the phone.
   bool _failedWithPack = false;
@@ -959,7 +973,7 @@ class _CompanionPageState extends ConsumerState<CompanionPage> implements Compan
     final store = _store;
     if (store == null || !await companionAdaptAuto()) return;
     // Nothing to ask with: the menu says how to get it.
-    if (ref.read(settingsProvider).apiKey.trim().isEmpty) return;
+    if (await _quWorkModelAccess() == null) return;
     final fingerprint = await companionMocFingerprint(store.pack, probe) ?? probe.moc;
     if (await companionAdaptTried(fingerprint)) return;
     // Nothing goes out on its own until the person has said yes once.
@@ -1006,8 +1020,8 @@ class _CompanionPageState extends ConsumerState<CompanionPage> implements Compan
     final probe = _probe;
     if (store == null || probe == null || _adapting) return;
     final l10n = context.l10n;
-    final key = ref.read(settingsProvider).apiKey.trim();
-    if (key.isEmpty) {
+    final access = await _quWorkModelAccess();
+    if (access == null) {
       _say(l10n.companionAdaptNoKey);
       return;
     }
@@ -1018,7 +1032,8 @@ class _CompanionPageState extends ConsumerState<CompanionPage> implements Compan
     try {
       final adapter = await companionAdaptAsk(
         client: client,
-        apiKey: key,
+        apiKey: access.token,
+        model: access.model,
         probe: probe,
         note: note,
         current: probe.adapted ? await companionAdapterRead(store.pack) : null,
@@ -2120,8 +2135,8 @@ class _CompanionPageState extends ConsumerState<CompanionPage> implements Compan
   /// stays on this phone.
   Future<void> _sendLight(String raw, bool Function() current) async {
     final text = raw.trim();
-    final key = ref.read(settingsProvider).apiKey.trim();
-    if (key.isEmpty) throw const CompanionLightError(CompanionLightFailure.noKey);
+    final access = await _quWorkModelAccess();
+    if (access == null) throw const CompanionLightError(CompanionLightFailure.noKey);
     final history = _lightHistory ??= CompanionLightHistory.at(_store!.root);
     await history.load();
     // What she has been asked to remember, kept on this phone. Unreadable
@@ -2154,7 +2169,8 @@ class _CompanionPageState extends ConsumerState<CompanionPage> implements Compan
     _lightReply =
         streamCompanionReply(
           client: client,
-          apiKey: key,
+          apiKey: access.token,
+          model: access.model,
           system: companionLightSystem(memories, persona: _persona()),
           lines: history.context(),
           context: turnContext,

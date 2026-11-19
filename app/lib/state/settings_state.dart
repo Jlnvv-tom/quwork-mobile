@@ -8,9 +8,11 @@ import '../secrets/secure_storage.dart';
 import 'provider_keys.dart';
 import 'read_list_epoch.dart';
 
-/// User settings: the DeepSeek API key (and custom-provider keys, see
-/// [ProviderKeyVault]) live in the Android Keystore-backed secure storage;
-/// plain preferences go to SharedPreferences.
+/// User settings and legacy provider metadata.
+///
+/// QuWork is the only account and model-billing identity. The old DeepSeek
+/// API-key field remains in this type so old serialized state can be read, but
+/// it is no longer loaded, written, or considered model access.
 class AppSettings {
   const AppSettings({
     this.apiKey = '',
@@ -78,10 +80,10 @@ class AppSettings {
   final Set<String> customProviderIds;
   final bool loaded;
 
-  bool get hasApiKey => apiKey.trim().isNotEmpty;
+  bool get hasApiKey => false;
 
-  /// A DeepSeek key or a custom provider on the local engine.
-  bool get hasModelAccess => hasApiKey || customProviderIds.isNotEmpty;
+  /// Model access is granted by the QuWork account, not legacy credentials.
+  bool get hasModelAccess => false;
 
   AppSettings copyWith({
     String? apiKey,
@@ -156,9 +158,8 @@ class SettingsController extends Notifier<AppSettings> {
     if (!ref.mounted) return;
     await performanceReady(ref);
     if (!ref.mounted) return;
-    String apiKey = '';
     try {
-      apiKey = await _secure.read(key: _apiKeyKey) ?? '';
+      await _secure.delete(key: _apiKeyKey);
     } catch (_) {
       // Keystore unavailable or corrupted; the user can re-enter the key.
     }
@@ -171,7 +172,7 @@ class SettingsController extends Notifier<AppSettings> {
     }
     if (!ref.mounted) return;
     state = AppSettings(
-      apiKey: apiKey,
+      apiKey: '',
       themeMode: ThemeMode.values.firstWhere(
         (m) => m.name == prefs.getString(_themeKey),
         orElse: () => ThemeMode.system,
@@ -198,16 +199,15 @@ class SettingsController extends Notifier<AppSettings> {
   Future<void> reloadCredentials() async {
     await _loaded;
     if (!ref.mounted) return;
-    var apiKey = '';
     var providerIds = const <String>{};
     try {
-      apiKey = await _secure.read(key: _apiKeyKey) ?? '';
+      await _secure.delete(key: _apiKeyKey);
       providerIds = (await ref.read(providerKeyVaultProvider).readAll()).keys.toSet();
     } catch (_) {
       // As in [_load]: the user can re-enter them.
     }
     if (!ref.mounted) return;
-    state = state.copyWith(apiKey: apiKey, customProviderIds: providerIds);
+    state = state.copyWith(apiKey: '', customProviderIds: providerIds);
   }
 
   /// Keeps [key] for the local engine's custom provider [id] (see
@@ -226,13 +226,8 @@ class SettingsController extends Notifier<AppSettings> {
 
   Future<void> setApiKey(String key) async {
     ref.read(readListCredentialEpochProvider.notifier).advance();
-    final trimmed = key.trim();
-    if (trimmed.isEmpty) {
-      await _secure.delete(key: _apiKeyKey);
-    } else {
-      await _secure.write(key: _apiKeyKey, value: trimmed);
-    }
-    state = state.copyWith(apiKey: trimmed);
+    await _secure.delete(key: _apiKeyKey);
+    state = state.copyWith(apiKey: '');
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {

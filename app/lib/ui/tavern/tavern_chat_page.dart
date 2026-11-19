@@ -45,6 +45,7 @@ import '../../tavern/tavern_slash.dart';
 import '../../tavern/tavern_sprites.dart';
 import '../../usage/usage_stats.dart';
 import '../bots/bot_chat_kit.dart';
+import '../auth/quwork_login_page.dart';
 import '../chat/composer.dart';
 import '../chat/render/markdown_body.dart';
 import '../chat/voice/voice_controller.dart';
@@ -59,13 +60,11 @@ import '../common/status_dot.dart';
 import '../common/typing_indicator.dart';
 import '../companion/companion_stage.dart';
 import '../features/feature_kit.dart' show QuietSpinner;
-import '../onboarding/api_key_page.dart';
 import '../settings/settings_widgets.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import '../wallpaper/wallpaper_backdrop.dart';
 import 'tavern_arrive.dart';
-import 'tavern_channels_page.dart' show TavernChannelEditPage;
 import 'tavern_canvas_view.dart';
 import 'tavern_component_view.dart';
 import 'tavern_group_page.dart';
@@ -1207,15 +1206,9 @@ class _TavernChatPageState extends ConsumerState<TavernChatPage> {
     if (failure == null) _focus.requestFocus();
   }
 
-  /// Where the DeepSeek key is set (as 酒馆设置 opens it); the line waits in
-  /// the composer.
-  /// Where the key in use is set: the app's DeepSeek key, or the channel's own.
-  void _openKeySettings() => unawaited(
-    Navigator.of(context).push(switch (ref.read(tavernSettingsProvider).activeChannel) {
-      final channel? => TavernChannelEditPage.route(channel),
-      null => MaterialPageRoute<void>(builder: (_) => const ApiKeyPage(onboarding: false)),
-    }),
-  );
+  /// QuWork is the only account and model credential for tavern requests.
+  void _openKeySettings() =>
+      unawaited(Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const QuWorkLoginPage())));
 
   Future<void> _sibling(TavernMessage message, int delta) async {
     if (_running) return;

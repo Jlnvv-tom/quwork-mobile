@@ -17,6 +17,12 @@
 
 如果工具不在 PATH，把本机路径写入未提交的 `tooling/env.sh`。该文件只放本机路径，不要提交账号、Token 或证书。
 
+服务地址放在未提交的 `tooling/quwork.env`，脚本会自动加载；该文件已加入 `.gitignore`。首次使用可从 `tooling/quwork.env.example` 复制：
+
+```bash
+cp tooling/quwork.env.example tooling/quwork.env
+```
+
 ## 一条命令做一个动作
 
 所有命令从仓库根目录运行：
@@ -25,7 +31,7 @@
 |---|---|
 | 启动或复用 Android 模拟器 | `npm run quwork:emu:start` |
 | 启动本地 Mock 并安装、启动 App | `npm run quwork:emu` |
-| 启动开发服版本 | `QUWORK_DEV_API_BASE_URL=https://你的开发服 npm run quwork:dev` |
+| 启动开发服版本 | `npm run quwork:dev`（地址读取 `tooling/quwork.env`） |
 | 启动正式服版本 | `npm run quwork:prod` |
 | 只构建 Mock Debug APK | `npm run quwork:apk` |
 | 构建正式服 Release APK | `npm run quwork:apk:release` |
@@ -33,6 +39,8 @@
 | 运行 Flutter 静态分析 | `npm run quwork:analyze` |
 | 运行 Flutter 测试 | `npm run quwork:test` |
 | 单独启动 Mock API | `npm run quwork:mock` |
+| 查看与源项目的差距 | `npm run quwork:sync -- --check` |
+| 同步源项目并合入当前分支 | `npm run quwork:sync` |
 
 常用设备变量：
 
@@ -42,6 +50,18 @@ QUWORK_ANDROID_DEVICE=emulator-5554 npm run quwork:emu
 ```
 
 如果同时连接多个设备，设置 `QUWORK_ANDROID_DEVICE` 指定设备。模拟器启动日志写入 `/tmp/quwork-android-emulator.log`，Mock 服务日志写入 `/tmp/quwork-mock-server.log`。
+
+## 同步源项目
+
+本仓库是 `ccch1mneyyy/dsh-go` 的 fork：`origin` 指向自己的 `quwork-mobile`，源项目用 `upstream` 远端。`tooling/quwork-sync.sh` 拉取两边，把本地 `main` 快进到 `upstream/main`，再把 `upstream/main` 合入当前分支（默认 `quwork`）；只合并不改写历史。
+
+```bash
+npm run quwork:sync -- --check   # 只拉取并报告落后/领先多少，不改分支
+npm run quwork:sync              # 更新 main 并合入当前分支
+npm run quwork:sync -- --push    # 同步后推送到 origin
+```
+
+工作区有未提交改动时脚本直接停住，不 stash、不 reset、不覆盖；合并冲突时停在冲突状态，解决后 `git add` + `git commit`，或 `git merge --abort` 放弃。同步完按改动面验证：`l10n_merge.py`、`guide_sync.py`、引擎补丁的 `pins.json`，以及 Dart/Swift 部分的分析和测试。
 
 ## One-API 环境
 
@@ -71,15 +91,14 @@ npm run quwork:prod
 
 ### 开发服
 
-仓库没有提交开发服域名，因此脚本不会猜测或写死开发地址。启动前显式传入：
+开发服和正式服地址统一配置在本地 `tooling/quwork.env`，不提交到 Git。当前配置为：
 
 ```bash
-QUWORK_DEV_API_BASE_URL=https://dev-one-api.example.com \
-QUWORK_DEV_LLM_BASE_URL=https://dev-one-api.example.com/v1 \
-npm run quwork:dev
+QUWORK_DEV_API_BASE_URL=https://dev-llm.rrzuji.com
+QUWORK_DEV_LLM_BASE_URL=https://dev-llm.rrzuji.com/v1
 ```
 
-如果开发服的模型接口不是账号接口的 `/v1`，必须同时设置 `QUWORK_DEV_LLM_BASE_URL`。开发服必须使用测试账号；开发服和正式服的登录态、模型权限及微信回调配置可能不同。
+如果开发服的模型接口不是账号接口的 `/v1`，修改 `QUWORK_DEV_LLM_BASE_URL`。开发服必须使用测试账号；开发服和正式服的登录态、模型权限及微信回调配置可能不同。
 
 ### 本地 Mock
 

@@ -14,6 +14,7 @@
   "quworkLoginFailed": "登录状态异常，可重新登录",
   "quworkLoginSignInHint": "手机号登录 QuWork",
   "quworkLoginSignOut": "退出登录",
+  "quworkUsageSummary": "模型用量由 QuWork 账号统一统计",
   "quworkCaptchaTitle": "人机验证",
   "quworkCaptchaHint": "请拖动滑块完成验证",
   "quworkCaptchaCancelled": "人机验证未完成",

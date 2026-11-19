@@ -8756,6 +8756,12 @@ abstract class L10n {
   /// **'退出登录'**
   String get quworkLoginSignOut;
 
+  /// No description provided for @quworkUsageSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'模型用量由 QuWork 账号统一统计'**
+  String get quworkUsageSummary;
+
   /// No description provided for @quworkCaptchaTitle.
   ///
   /// In zh, this message translates to:
@@ -10001,13 +10007,13 @@ abstract class L10n {
   /// No description provided for @companionLightNoKey.
   ///
   /// In zh, this message translates to:
-  /// **'轻量模式要用 DeepSeek API Key，在设置里填上就能和我聊啦。'**
+  /// **'轻量模式需要先登录 QuWork，并开通可用模型。登录后就能和我聊啦。'**
   String get companionLightNoKey;
 
   /// No description provided for @companionLightBadKey.
   ///
   /// In zh, this message translates to:
-  /// **'API Key 好像不对，或者已经失效了。'**
+  /// **'QuWork 模型凭据好像无效，或者已经失效了。'**
   String get companionLightBadKey;
 
   /// No description provided for @companionLightBusy.
@@ -10949,7 +10955,7 @@ abstract class L10n {
   /// No description provided for @companionAdaptNoKey.
   ///
   /// In zh, this message translates to:
-  /// **'要用你的模型帮我适配，先在设置里填上 API Key。'**
+  /// **'要用 QuWork 模型帮我适配，请先登录 QuWork 并开通模型权限。'**
   String get companionAdaptNoKey;
 
   /// No description provided for @companionAdaptFailed.
@@ -16841,7 +16847,7 @@ abstract class L10n {
   /// No description provided for @hubSettingsAccount.
   ///
   /// In zh, this message translates to:
-  /// **'DeepSeek 账号'**
+  /// **'QuWork 账号'**
   String get hubSettingsAccount;
 
   /// No description provided for @hubSettingsSigningIn.
@@ -16859,25 +16865,25 @@ abstract class L10n {
   /// No description provided for @hubSettingsNoApiKey.
   ///
   /// In zh, this message translates to:
-  /// **'未设置 API Key'**
+  /// **'未登录 QuWork'**
   String get hubSettingsNoApiKey;
 
   /// No description provided for @hubSettingsApiKeyHint.
   ///
   /// In zh, this message translates to:
-  /// **'填写 Key 后即可对话'**
+  /// **'登录 QuWork 后即可对话'**
   String get hubSettingsApiKeyHint;
 
   /// No description provided for @hubSettingsSignInAccount.
   ///
   /// In zh, this message translates to:
-  /// **'登录 DeepSeek 账号'**
+  /// **'登录 QuWork 账号'**
   String get hubSettingsSignInAccount;
 
   /// No description provided for @hubSettingsOrApiKey.
   ///
   /// In zh, this message translates to:
-  /// **'或填写 API Key'**
+  /// **'模型用量由 QuWork 统一统计'**
   String get hubSettingsOrApiKey;
 
   /// No description provided for @hubPluginShare.
@@ -17141,7 +17147,7 @@ abstract class L10n {
   /// No description provided for @hubSettingsApiKey.
   ///
   /// In zh, this message translates to:
-  /// **'DeepSeek API Key'**
+  /// **'QuWork 模型凭据'**
   String get hubSettingsApiKey;
 
   /// No description provided for @hubPluginBrowserFailed.
@@ -30977,13 +30983,13 @@ abstract class L10n {
   /// No description provided for @remotePairNeedsDeepSeek.
   ///
   /// In zh, this message translates to:
-  /// **'先登录 DeepSeek 账号'**
+  /// **'先登录 QuWork 账号'**
   String get remotePairNeedsDeepSeek;
 
   /// No description provided for @remotePairNeedsDeepSeekBody.
   ///
   /// In zh, this message translates to:
-  /// **'扫码配对要先在 DSH Go 里登录 DeepSeek 账号。配对时只附带账号 ID 用来标记这台手机，不传密码、Cookie 或 Token。'**
+  /// **'扫码配对要先在 QuWork 中登录账号。配对使用 QuWork 账号标记这台手机，不传 DeepSeek 密码、Cookie 或 Token。'**
   String get remotePairNeedsDeepSeekBody;
 
   /// No description provided for @remotePairScanHint.
@@ -32681,13 +32687,13 @@ abstract class L10n {
   /// No description provided for @shellConnectDeepSeek.
   ///
   /// In zh, this message translates to:
-  /// **'连接 DeepSeek'**
+  /// **'连接 QuWork'**
   String get shellConnectDeepSeek;
 
   /// No description provided for @shellConnectDeepSeekMessage.
   ///
   /// In zh, this message translates to:
-  /// **'登录 DeepSeek 账号即可开始，无需 API Key'**
+  /// **'登录 QuWork 账号后即可开始对话，模型用量由 QuWork 统一统计'**
   String get shellConnectDeepSeekMessage;
 
   /// No description provided for @shellAccountSignInUnsupported.
@@ -32699,19 +32705,19 @@ abstract class L10n {
   /// No description provided for @shellSignInDeepSeek.
   ///
   /// In zh, this message translates to:
-  /// **'用 DeepSeek 账号登录'**
+  /// **'登录 QuWork 账号'**
   String get shellSignInDeepSeek;
 
   /// No description provided for @shellUseApiKey.
   ///
   /// In zh, this message translates to:
-  /// **'使用 API Key'**
+  /// **'登录 QuWork'**
   String get shellUseApiKey;
 
   /// No description provided for @shellOtherProviders.
   ///
   /// In zh, this message translates to:
-  /// **'其他模型渠道'**
+  /// **'其他模型渠道已由 QuWork 管理'**
   String get shellOtherProviders;
 
   /// No description provided for @shellOnboardingStep.
@@ -34235,19 +34241,19 @@ abstract class L10n {
   /// No description provided for @speechVoiceDeepseek.
   ///
   /// In zh, this message translates to:
-  /// **'DeepSeek'**
+  /// **'QuWork 语音'**
   String get speechVoiceDeepseek;
 
   /// No description provided for @speechVoiceDeepseekHint.
   ///
   /// In zh, this message translates to:
-  /// **'登录的 DeepSeek 账号付费；没登录，或账号不能用于语音时，用设置里的 API Key。不用另外配置'**
+  /// **'语音能力由 QuWork 账号统一管理；当前版本需要服务端提供 QuWork 语音接口。'**
   String get speechVoiceDeepseekHint;
 
   /// No description provided for @speechVoiceDeepseekFooter.
   ///
   /// In zh, this message translates to:
-  /// **'按朗读的字数计费，价格见 DeepSeek 开放平台。读出前会去掉代码块、表格和链接地址。'**
+  /// **'语音请求不会改用 DeepSeek 官方账号或 API Key。读出前会去掉代码块、表格和链接地址。'**
   String get speechVoiceDeepseekFooter;
 
   /// No description provided for @speechVoiceStella.
@@ -46421,25 +46427,25 @@ abstract class L10n {
   /// No description provided for @viewModelKeyRequired.
   ///
   /// In zh, this message translates to:
-  /// **'需要 API Key'**
+  /// **'需要登录 QuWork'**
   String get viewModelKeyRequired;
 
   /// No description provided for @viewModelProvidersHint.
   ///
   /// In zh, this message translates to:
-  /// **'支持 DeepSeek 和其他模型渠道'**
+  /// **'登录 QuWork 后使用账号可用模型'**
   String get viewModelProvidersHint;
 
   /// No description provided for @viewModelEnterKey.
   ///
   /// In zh, this message translates to:
-  /// **'填写 API Key'**
+  /// **'登录 QuWork'**
   String get viewModelEnterKey;
 
   /// No description provided for @viewModelAddProvider.
   ///
   /// In zh, this message translates to:
-  /// **'添加其他渠道'**
+  /// **'登录 QuWork'**
   String get viewModelAddProvider;
 
   /// No description provided for @viewModelNone.
@@ -46451,13 +46457,13 @@ abstract class L10n {
   /// No description provided for @viewModelKeyHint.
   ///
   /// In zh, this message translates to:
-  /// **'Key 可能尚未生效或已失效'**
+  /// **'QuWork 模型可能尚未同步，请刷新或重新登录'**
   String get viewModelKeyHint;
 
   /// No description provided for @viewModelManageProviders.
   ///
   /// In zh, this message translates to:
-  /// **'管理渠道'**
+  /// **'管理 QuWork 模型'**
   String get viewModelManageProviders;
 
   /// No description provided for @viewContinuePrompt.

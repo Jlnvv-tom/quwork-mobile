@@ -4,8 +4,10 @@ import 'package:dsh_client/dsh_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:quwork_api/quwork_api.dart';
 
+import 'model_defaults_state.dart';
 import 'models_state.dart';
 import 'providers_state.dart';
+import 'read_list_identity.dart';
 import 'quwork_auth_state.dart';
 
 enum QuWorkModelsPhase { idle, loading, ready, failed }
@@ -16,6 +18,12 @@ class QuWorkModelsState {
   final List<QuWorkModel> models;
   final Object? error;
   final DateTime? loadedAt;
+}
+
+ModelSelection? quWorkDefaultSelection(QuWorkModelsState state) {
+  if (state.models.isEmpty) return null;
+  final model = state.models.first;
+  return ModelSelection(provider: 'quwork', model: model.id);
 }
 
 class QuWorkModelsController extends Notifier<QuWorkModelsState> {
@@ -31,8 +39,9 @@ class QuWorkModelsController extends Notifier<QuWorkModelsState> {
     state = QuWorkModelsState(phase: QuWorkModelsPhase.loading, models: state.models);
     try {
       final models = await ref.read(quWorkAuthProvider.notifier).availableModels();
-      if (ref.mounted)
+      if (ref.mounted) {
         state = QuWorkModelsState(phase: QuWorkModelsPhase.ready, models: models, loadedAt: DateTime.now());
+      }
     } catch (error) {
       if (ref.mounted) state = QuWorkModelsState(phase: QuWorkModelsPhase.failed, models: state.models, error: error);
     }
@@ -48,7 +57,20 @@ final quWorkProviderSyncProvider = FutureProvider.autoDispose<void>((ref) async 
   final auth = ref.watch(quWorkAuthProvider);
   final models = ref.watch(quWorkModelsProvider);
   final backend = ref.watch(providerBackendProvider);
-  if (!auth.signedIn || models.models.isEmpty || backend == null) return;
+  final connection = ref.watch(readListLiveConnectionProvider);
+  if (!auth.signedIn) {
+    if (backend != null) {
+      final existing = (await backend.read())?.byRoute('quwork');
+      if (existing != null && existing.apiKeyEnv == 'QUWORK_LLM_TOKEN') {
+        await backend.remove('quwork', expectedRevision: (await backend.read())?.revision);
+      } else {
+        await backend.clearKey('QUWORK_LLM_TOKEN');
+      }
+      if (connection != null) ref.invalidate(modelCatalogProvider);
+    }
+    return;
+  }
+  if (models.models.isEmpty || backend == null || connection == null) return;
   final llmToken = await ref.read(quWorkAuthProvider.notifier).modelToken();
   if (llmToken == null) return;
   const route = 'quwork';
@@ -80,6 +102,24 @@ final quWorkProviderSyncProvider = FutureProvider.autoDispose<void>((ref) async 
     );
   }
   await backend.storeKey('QUWORK_LLM_TOKEN', llmToken);
+
+  // QuWork is the product's only model source. Replace any upstream default so
+  // every request after login is charged to the QuWork account.
+  try {
+    final catalog = await connection.client.listModels();
+    final current = catalog.defaultSelection;
+    final quWorkDefault =
+        models.models.isNotEmpty && current?.provider == route && current?.model == models.models.first.id;
+    if (!quWorkDefault && models.models.isNotEmpty) {
+      await connection.client.mutateSettings(
+        defaultModelSettingsNs,
+        defaultModelOps(ModelSelection(provider: route, model: models.models.first.id)),
+      );
+    }
+  } on Object {
+    // The provider and credential are already usable; a default write can be
+    // retried by the next catalog refresh without blocking model access.
+  }
   ref.invalidate(modelCatalogProvider);
 });
 
@@ -97,12 +137,23 @@ final quWorkModelGroupProvider = Provider<ProviderGroup?>((ref) {
 final quWorkMergedCatalogProvider = Provider<ModelCatalog?>((ref) {
   final catalog = ref.watch(modelListViewProvider).value;
   final group = ref.watch(quWorkModelGroupProvider);
-  if (catalog == null || group == null) return catalog;
-  if (catalog.groups.any((entry) => entry.id == group.id)) return catalog;
+  final auth = ref.watch(quWorkAuthProvider);
+  if (catalog == null) return null;
+  if (!auth.signedIn || group == null) {
+    return const ModelCatalog(defaultSelection: null, routableProviders: [], groups: [], failures: []);
+  }
+  final defaultSelection =
+      catalog.defaultSelection?.provider == group.id &&
+          group.models.any((model) => model.id == catalog.defaultSelection?.model)
+      ? catalog.defaultSelection
+      : ModelSelection(provider: group.id, model: group.models.first.id);
   return ModelCatalog(
-    defaultSelection: catalog.defaultSelection,
-    routableProviders: [...catalog.routableProviders, group.id],
-    groups: [...catalog.groups, group],
-    failures: catalog.failures,
+    defaultSelection: defaultSelection,
+    routableProviders: [group.id],
+    groups: [group],
+    failures: [
+      for (final failure in catalog.failures)
+        if (failure.provider == group.id) failure,
+    ],
   );
 });

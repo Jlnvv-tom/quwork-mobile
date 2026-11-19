@@ -31,6 +31,7 @@ import '../../speech/speech_out.dart';
 import '../../speech/speech_settings.dart';
 import '../../speech/voice_cloud.dart';
 import '../../state/account_state.dart';
+import '../../state/quwork_auth_state.dart';
 import '../../state/app_notes.dart';
 import '../../state/notify_state.dart';
 import '../../state/voice_settings.dart';
@@ -342,10 +343,10 @@ class _VoiceCallPageState extends ConsumerState<VoiceCallPage> with WidgetsBindi
           CallEnd.microphone => l10n.speechCallEndMicrophone,
           CallEnd.noRecognizer =>
             wordsForIos
-                ? (ref.read(accountProvider).signedIn
+                ? (ref.read(quWorkAuthProvider).signedIn
                       ? l10n.iosSpeechCallEndNoRecognizerSignedIn
                       : l10n.iosSpeechCallEndNoRecognizer)
-                : (ref.read(accountProvider).signedIn
+                : (ref.read(quWorkAuthProvider).signedIn
                       ? l10n.speechCallEndNoRecognizerSignedIn
                       : l10n.speechCallEndNoRecognizer),
           CallEnd.background => l10n.speechCallEndBackground,

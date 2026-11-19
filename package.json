@@ -11,6 +11,7 @@
     "quwork:analyze": "bash tooling/quwork-analyze.sh",
     "quwork:apk": "bash tooling/quwork-android.sh --backend mock --build-only",
     "quwork:apk:release": "bash tooling/quwork-android.sh --backend prod --release --build-only",
-    "quwork:test": "bash tooling/quwork-test.sh"
+    "quwork:test": "bash tooling/quwork-test.sh",
+    "quwork:sync": "bash tooling/quwork-sync.sh"
   }
 }

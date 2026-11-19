@@ -16,6 +16,8 @@ import 'app_info.dart';
 import 'connection_state.dart';
 import 'hosts_state.dart';
 import 'notify_state.dart';
+import 'quwork_auth_state.dart';
+import 'quwork_models_state.dart';
 
 // ── The plugin on the active host ────────────────────────────────────────────
 
@@ -712,6 +714,18 @@ class BotChatController extends Notifier<BotChatState> {
 
   DsBotApi? get _api => ref.read(dsBotProvider.notifier).api;
 
+  Future<bool> _ensureQuWorkModel(DsBotApi api, String id) async {
+    final auth = ref.read(quWorkAuthProvider);
+    final model = quWorkDefaultSelection(ref.read(quWorkModelsProvider));
+    if (!auth.signedIn || !auth.hasModelCredential || model == null) return false;
+    await ref.read(quWorkProviderSyncProvider.future);
+    final bot = ref.read(dsBotProvider).team?.bot(id);
+    final selected = '${model.provider}/${model.model}';
+    if (bot?.modelRef == selected) return true;
+    await api.updateBot(id, model: selected, effort: '');
+    return true;
+  }
+
   @override
   BotChatState build() {
     final hub = ref.watch(dsBotProvider.notifier);
@@ -834,6 +848,12 @@ class BotChatController extends Notifier<BotChatState> {
     final api = _api;
     final trimmed = text.trim();
     if (api == null || trimmed.isEmpty) return false;
+    try {
+      if (!await _ensureQuWorkModel(api, botId)) return false;
+    } catch (error) {
+      if (ref.mounted) state = state.copyWith(error: () => describeDsBotError(error));
+      return false;
+    }
     final generation = _generation;
     final entry = DsBotPending(trimmed, DateTime.now());
     state = state.copyWith(pending: [...state.pending, entry], error: () => null);
@@ -937,6 +957,21 @@ class RoomChatController extends Notifier<RoomChatState> {
   static const pollEvery = Duration(seconds: 3);
 
   DsBotApi? get _api => ref.read(dsBotProvider.notifier).api;
+
+  Future<bool> _ensureQuWorkModels(DsBotApi api) async {
+    final auth = ref.read(quWorkAuthProvider);
+    final model = quWorkDefaultSelection(ref.read(quWorkModelsProvider));
+    final team = ref.read(dsBotProvider).team;
+    final room = team?.room(roomId);
+    if (!auth.signedIn || !auth.hasModelCredential || model == null || room == null) return false;
+    final currentTeam = team;
+    await ref.read(quWorkProviderSyncProvider.future);
+    final selected = '${model.provider}/${model.model}';
+    for (final member in room.members) {
+      if (currentTeam!.bot(member)?.modelRef != selected) await api.updateBot(member, model: selected, effort: '');
+    }
+    return true;
+  }
 
   @override
   RoomChatState build() {
@@ -1049,6 +1084,12 @@ class RoomChatController extends Notifier<RoomChatState> {
     final api = _api;
     final trimmed = text.trim();
     if (api == null || trimmed.isEmpty) return false;
+    try {
+      if (!await _ensureQuWorkModels(api)) return false;
+    } catch (error) {
+      if (ref.mounted) state = state.copyWith(error: () => describeDsBotError(error));
+      return false;
+    }
     final generation = _generation;
     final entry = DsBotPending(trimmed, DateTime.now());
     state = state.copyWith(pending: [...state.pending, entry], error: () => null);

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/l10n.dart';
 import '../../state/account_state.dart';
+import '../../state/quwork_auth_state.dart';
 import '../common/display_image.dart';
 import '../common/overview_card.dart' show OverviewChevron;
 import '../common/progress_halo.dart';
@@ -13,7 +14,7 @@ import '../common/status_dot.dart';
 import '../settings/settings_widgets.dart' show SettingsIcon, SettingsMetrics, settingsTitleStyle;
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
-import 'account_page.dart';
+import '../auth/quwork_login_page.dart';
 import '../common/smooth_size.dart';
 import '../onboarding/onboarding_scaffold.dart';
 import '../common/brief_notice.dart';
@@ -296,8 +297,8 @@ class SignInFailureCard extends ConsumerWidget {
   }
 }
 
-/// Settings row for the DeepSeek account: avatar, name and masked contact when
-/// signed in, otherwise a sign-in prompt. Opens [AccountPage].
+/// Settings row for the QuWork account: account label and sign-in state. The
+/// model credential is managed by QuWork and never exposed as an API key here.
 ///
 /// Place it inside a `SheetGroup`, for example as the first row of "模型与密钥".
 class AccountTile extends ConsumerWidget {
@@ -306,7 +307,7 @@ class AccountTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final state = ref.watch(accountProvider);
+    final state = ref.watch(quWorkAuthProvider);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final colors = DshColors.of(context);
@@ -316,13 +317,12 @@ class AccountTile extends ConsumerWidget {
     final Widget leading;
     Widget? value;
     switch (state.phase) {
-      case AccountPhase.signedIn:
-        title = state.profile?.displayName ?? l10n.engineAccountDeepSeek;
-        final contact = state.profile?.contact;
-        subtitle = contact != null && contact != title ? contact : l10n.engineAccountSignedIn;
-        leading = AccountAvatar(profile: state.profile, size: 32);
-      case AccountPhase.signingIn:
-        title = l10n.engineAccountDeepSeek;
+      case QuWorkAuthPhase.signedIn:
+        title = l10n.quworkLoginTitle;
+        subtitle = state.user?.label ?? l10n.quworkLoginSignedIn;
+        leading = const _TileIcon();
+      case QuWorkAuthPhase.sendingCode || QuWorkAuthPhase.captchaRequired || QuWorkAuthPhase.signingIn:
+        title = l10n.quworkLoginTitle;
         subtitle = null;
         leading = const _TileIcon();
         value = Row(
@@ -330,27 +330,28 @@ class AccountTile extends ConsumerWidget {
           children: [
             const StatusDot(tone: StatusTone.busy, size: 7),
             const SizedBox(width: 7),
-            Text(l10n.engineAccountSigningIn),
+            Text(l10n.quworkLoginWorking),
           ],
         );
-      case AccountPhase.unsupported:
-        title = l10n.engineAccountDeepSeek;
-        subtitle = l10n.engineAccountUnsupported;
+      case QuWorkAuthPhase.restoring:
+      case QuWorkAuthPhase.refreshing:
+        title = l10n.quworkLoginTitle;
+        subtitle = l10n.quworkLoginRestoring;
         leading = const _TileIcon();
-      case AccountPhase.signedOut:
-        title = l10n.engineAccountDeepSeek;
-        subtitle = l10n.engineAccountNoKeyNeeded;
+      case QuWorkAuthPhase.failed:
+        title = l10n.quworkLoginTitle;
+        subtitle = l10n.quworkLoginFailed;
         leading = const _TileIcon();
-        value = Text(l10n.engineAccountSignedOut, style: TextStyle(color: colors.textTertiary));
-      case AccountPhase.unknown:
-        // Engine not connected yet: don't claim either way.
-        title = l10n.engineAccountDeepSeek;
-        subtitle = l10n.engineAccountNoKeyNeeded;
+        value = Text(l10n.quworkLoginSignInHint, style: TextStyle(color: colors.textTertiary));
+      case QuWorkAuthPhase.unknown || QuWorkAuthPhase.signedOut || QuWorkAuthPhase.wechatBindingRequired:
+        title = l10n.quworkLoginTitle;
+        subtitle = l10n.quworkLoginSignInHint;
         leading = const _TileIcon();
+        value = Text(l10n.commonNotSet, style: TextStyle(color: colors.textTertiary));
     }
 
     return InkWell(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AccountPage())),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const QuWorkLoginPage())),
       splashFactory: rowSplash(context),
       highlightColor: scheme.onSurface.withValues(alpha: 0.05),
       child: ConstrainedBox(

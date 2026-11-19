@@ -385,6 +385,7 @@ class QuWorkAuthApi {
       token: nextToken,
       expiresAt: _requiredEpoch(data['expire']),
       user: user,
+      llmToken: _optionalText(data['llm_token']),
     );
   }
 

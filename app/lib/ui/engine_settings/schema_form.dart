@@ -19,7 +19,7 @@ import 'sequence_field.dart';
 import '../../l10n/l10n.dart';
 import '../../state/engine_settings_state.dart';
 import '../../state/settings_state.dart';
-import '../account/account_page.dart';
+import '../auth/quwork_login_page.dart';
 import '../common/segmented_pill.dart';
 import '../features/feature_widgets.dart';
 import '../settings/index/spot_anchor.dart' show anchorSpot;
@@ -556,7 +556,7 @@ class SecretFieldTile extends ConsumerWidget {
         subtitleColor: error != null ? colors.danger : null,
         value: hasKey || configured ? l10n.engineFieldSharedWithModel : l10n.engineFieldNotConfigured,
         valueColor: hasKey || configured ? null : colors.warning,
-        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AccountPage())),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const QuWorkLoginPage())),
       );
     }
     final source = SchemaFormScope.of(context);

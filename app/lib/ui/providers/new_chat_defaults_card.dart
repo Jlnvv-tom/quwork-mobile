@@ -6,6 +6,7 @@ import '../../l10n/l10n.dart';
 import '../../state/engine_settings_state.dart';
 import '../../state/model_defaults_state.dart';
 import '../../state/models_state.dart';
+import '../../state/quwork_models_state.dart';
 import '../../state/read_list_identity.dart';
 import '../chat/model_sheet.dart';
 import '../common/list_page_row.dart';
@@ -38,7 +39,7 @@ class _NewChatDefaultsCardState extends ConsumerState<NewChatDefaultsCard> {
       return;
     }
     if (!canEditDefaultModel(current.value!) || remember != null && !canEditDefaultModelMode(current.value!)) return;
-    if (!isValidModelSelection(ref.read(currentModelCatalogProvider), selection)) {
+    if (!isValidModelSelection(ref.read(quWorkMergedCatalogProvider), selection)) {
       setState(() => _error = context.l10n.engineNewChatDefaultsSelectionUnavailable);
       return;
     }
@@ -111,7 +112,7 @@ class _NewChatDefaultsCardState extends ConsumerState<NewChatDefaultsCard> {
     final l10n = context.l10n;
     final async = ref.watch(engineSettingsProvider);
     final connection = ref.watch(readListLiveConnectionProvider);
-    final catalog = ref.watch(currentModelCatalogProvider);
+    final catalog = ref.watch(quWorkMergedCatalogProvider);
     final catalogAsync = ref.watch(modelCatalogProvider);
     final settings = async.value;
     final active =

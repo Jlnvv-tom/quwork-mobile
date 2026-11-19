@@ -9,7 +9,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'dart:typed_data' show BytesBuilder;
 
 import 'package:dsh_client/dsh_client.dart';
@@ -17,9 +16,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
-import '../state/account_state.dart';
-import '../state/connection_state.dart';
-import '../state/settings_state.dart';
+import '../state/quwork_auth_state.dart';
 
 part 'ohos_deepseek_speech.dart';
 
@@ -299,54 +296,11 @@ class BridgeDeepSeekSpeech implements DeepSeekSpeech {
   void close() => _closed = true;
 }
 
-/// What the bridge says it can pay with, read once per engine connection
-/// (a sign-in or sign-out reads it again: [invalidateDeepSeekSpeech]).
-class _BridgeProbe {
-  _BridgeProbe(this.client, this.route, this.at);
-  final DshClient client;
-  final DeepSeekSpeechRoute? route;
-  final DateTime at;
-}
+/// Kept as a no-op for shared callers. QuWork speech does not use a cached
+/// upstream-account route.
+void invalidateDeepSeekSpeech() {}
 
-_BridgeProbe? _probe;
-
-/// Forget what the bridge said (after signing in or out).
-void invalidateDeepSeekSpeech() => _probe = null;
-
-Future<DeepSeekSpeechRoute?> _bridgeRoute(DshClient client) async {
-  final cached = _probe;
-  if (cached != null &&
-      identical(cached.client, client) &&
-      DateTime.now().difference(cached.at) < const Duration(minutes: 2)) {
-    return cached.route;
-  }
-  final carrier = client.carrier;
-  DeepSeekSpeechRoute? route;
-  if (carrier is DshHttpCarrier) {
-    try {
-      final response = await carrier.connection.getBounded(
-        _bridge,
-        maxBytes: 4096,
-        timeout: const Duration(seconds: 4),
-      );
-      if (response.statusCode == 200) {
-        final json = jsonDecode(utf8.decode(response.body));
-        route = switch (json is Map ? json['credential'] : null) {
-          'account' => DeepSeekSpeechRoute.account,
-          'api-key' => DeepSeekSpeechRoute.hostKey,
-          _ => null,
-        };
-      }
-    } on Object {
-      // An engine without the speech routes (older bridge), or not reachable now.
-    }
-  }
-  _probe = _BridgeProbe(client, route, DateTime.now());
-  return route;
-}
-
-/// Who pays for speech now, or null when nobody can: the signed-in account
-/// (through the engine), else the API key in 设置, else the host's own key.
+/// Who pays for speech now, or null when nobody can.
 typedef DeepSeekSpeechResolver = Future<DeepSeekSpeech?> Function();
 
 /// The account was turned away by the speech endpoints (signed out, or they
@@ -422,23 +376,11 @@ class AccountThenKeySpeech implements DeepSeekSpeech {
 final deepSeekSpeechHttpProvider = Provider<http.Client Function()>((ref) => http.Client.new);
 
 final deepSeekSpeechProvider = Provider<DeepSeekSpeechResolver>((ref) {
+  ref.watch(quWorkAuthProvider);
   return () async {
-    final client = ref.read(activeConnectionProvider).value?.client;
-    final bridge = client == null ? null : await _bridgeRoute(client);
-    final carrier = client?.carrier;
-    final key = ref.read(settingsProvider).apiKey.trim();
-    DeepSeekSpeech direct() => DirectDeepSeekSpeech(key, client: ref.read(deepSeekSpeechHttpProvider));
-    if (Platform.operatingSystem == 'ohos') {
-      return _resolveOhosSpeech(bridge, carrier, key, ref.read(deepSeekSpeechHttpProvider));
-    }
-    if (bridge == DeepSeekSpeechRoute.account && carrier is DshHttpCarrier && !(_accountRefused && key.isNotEmpty)) {
-      final account = BridgeDeepSeekSpeech(carrier.connection, bridge!);
-      return key.isEmpty ? account : AccountThenKeySpeech(account, direct);
-    }
-    if (key.isNotEmpty) return direct();
-    if (bridge == DeepSeekSpeechRoute.hostKey && carrier is DshHttpCarrier) {
-      return BridgeDeepSeekSpeech(carrier.connection, bridge!);
-    }
+    // QuWork currently exposes the text model gateway only. Do not fall back
+    // to the upstream DeepSeek speech API, an engine-owned DeepSeek account,
+    // or a legacy app API key: those routes would charge another account.
     return null;
   };
 });
@@ -447,7 +389,7 @@ final deepSeekSpeechProvider = Provider<DeepSeekSpeechResolver>((ref) {
 /// cannot pay for speech here; else there is no account and no key.
 final deepSeekSpeechGapProvider = Provider<DeepSeekSpeechFailure Function()>(
   (ref) =>
-      () => ref.read(accountProvider).signedIn
+      () => ref.read(quWorkAuthProvider).signedIn
       ? DeepSeekSpeechFailure.accountUnusable
       : DeepSeekSpeechFailure.noCredential,
 );

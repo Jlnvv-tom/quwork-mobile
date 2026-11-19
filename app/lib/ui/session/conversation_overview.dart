@@ -12,6 +12,7 @@ import '../../state/connection_state.dart';
 import '../../state/models_state.dart';
 import '../../state/session_search.dart' show folderLabel;
 import '../../state/sessions_state.dart';
+import '../../state/quwork_models_state.dart';
 import '../../plugins/native/native_state.dart';
 import '../chat/model_sheet.dart';
 import '../plugins/native/native_taps.dart' show runNativeAction;
@@ -61,7 +62,7 @@ class ConversationOverview extends ConsumerWidget {
       subagentParentProvider(sessionId).select((p) => p?.address.mode == SubagentMode.oneShot),
     );
     final model = ref.watch(chatProvider(sessionId).select((s) => s.model));
-    final catalog = ref.watch(currentModelCatalogProvider);
+    final catalog = ref.watch(quWorkMergedCatalogProvider);
     final effective = model ?? catalog?.defaultSelection;
     final effort = effective?.reasoningEffort;
     final host = ref.watch(activeConnectionProvider.select((c) => c.value?.label));

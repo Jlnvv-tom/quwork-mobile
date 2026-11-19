@@ -7,7 +7,7 @@ import 'connection_state.dart';
 import 'hosts_state.dart';
 import 'read_list_cache.dart';
 import 'read_list_identity.dart';
-import 'settings_state.dart';
+import 'quwork_auth_state.dart';
 
 /// `session/modelCatalog` of the active host (null while disconnected).
 ///
@@ -19,11 +19,12 @@ import 'settings_state.dart';
 /// model edits (thinking levels, names) change no route, so the pi-ai
 /// section's own update counts too.
 final modelCatalogProvider = FutureProvider<ModelCatalog?>((ref) async {
+  final auth = ref.watch(quWorkAuthProvider);
+  if (!auth.signedIn || !auth.hasModelCredential) return null;
   final conn = ref.watch(readListLiveConnectionProvider);
   if (conn == null) return null;
   final identity = ref.watch(readListIdentityProvider);
   final cache = ref.read(readListCacheProvider);
-  ref.watch(settingsProvider.select((s) => s.apiKey));
   final sub = conn.client.hostEvents.listen((event) {
     final refresh = switch (event) {
       CredentialUpdatedEvent() || HostReadyEvent() => true,
@@ -34,7 +35,30 @@ final modelCatalogProvider = FutureProvider<ModelCatalog?>((ref) async {
     if (refresh && ref.mounted) ref.invalidateSelf();
   });
   ref.onDispose(() => unawaited(sub.cancel()));
-  final catalog = await conn.client.listModels();
+  final raw = await conn.client.listModels();
+  // The mobile product exposes one model account only. Filtering at this
+  // shared boundary prevents legacy providers from reappearing in secondary
+  // model pickers or from being selected by an old saved default.
+  final groups = [
+    for (final group in raw.groups)
+      if (group.id == 'quwork' && group.models.isNotEmpty) group,
+  ];
+  final defaultSelection =
+      raw.defaultSelection?.provider == 'quwork' &&
+          groups.any((group) => group.models.any((model) => model.id == raw.defaultSelection?.model))
+      ? raw.defaultSelection
+      : groups.isEmpty
+      ? null
+      : ModelSelection(provider: 'quwork', model: groups.first.models.first.id);
+  final catalog = ModelCatalog(
+    defaultSelection: defaultSelection,
+    routableProviders: groups.isEmpty ? const [] : const ['quwork'],
+    groups: groups,
+    failures: [
+      for (final failure in raw.failures)
+        if (failure.provider == 'quwork') failure,
+    ],
+  );
   if (ref.mounted) {
     cache.stamp(catalog, identity, conn.client);
     cache.put(readListKey(identity, ReadListKind.models), catalog, () => CachedModels(catalog));
@@ -96,7 +120,28 @@ final modelSelectionScopeProvider = Provider<Object>((ref) {
 /// cached or retained catalogs are for browsing, not a claim about defaults.
 final currentModelCatalogProvider = Provider<ModelCatalog?>((ref) {
   final view = ref.watch(modelListViewProvider);
-  return view.readOnly ? null : view.value;
+  final catalog = view.value;
+  final auth = ref.watch(quWorkAuthProvider);
+  if (view.readOnly || catalog == null || !auth.signedIn) return null;
+  final groups = [
+    for (final group in catalog.groups)
+      if (group.id == 'quwork' && group.models.isNotEmpty) group,
+  ];
+  if (groups.isEmpty) return null;
+  final defaultSelection =
+      catalog.defaultSelection?.provider == 'quwork' &&
+          groups.first.models.any((model) => model.id == catalog.defaultSelection?.model)
+      ? catalog.defaultSelection
+      : ModelSelection(provider: 'quwork', model: groups.first.models.first.id);
+  return ModelCatalog(
+    defaultSelection: defaultSelection,
+    routableProviders: const ['quwork'],
+    groups: groups,
+    failures: [
+      for (final failure in catalog.failures)
+        if (failure.provider == 'quwork') failure,
+    ],
+  );
 });
 
 /// Model picked on the new-chat screen before a session exists. Applied to the

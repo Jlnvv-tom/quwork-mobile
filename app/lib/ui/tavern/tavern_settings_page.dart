@@ -10,7 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/l10n.dart';
 import '../../state/app_mode_state.dart';
 import '../../state/attachments.dart' show formatBytes;
-import '../../state/settings_state.dart';
+import '../../state/quwork_auth_state.dart';
 import '../../tavern/tavern_generation.dart';
 import '../../tavern/tavern_provider.dart';
 import '../../tavern/tavern_quick_replies.dart';
@@ -21,13 +21,12 @@ import '../chat/render/markdown_body.dart';
 import '../common/app_sheet.dart';
 import '../common/sheet_title_bar.dart';
 import '../modes/mode_switch.dart';
-import '../onboarding/api_key_page.dart';
+import '../auth/quwork_login_page.dart';
 import '../settings/settings_widgets.dart';
 import '../shell/page_frame.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
 import 'tavern_backup.dart';
-import 'tavern_channels_page.dart' show TavernAuxiliaryTile;
 import 'tavern_import_files.dart';
 import 'tavern_model_rows.dart';
 import 'tavern_number_tile.dart';
@@ -54,7 +53,7 @@ List<Widget> tavernSettingsGroups(BuildContext context, WidgetRef ref) {
   final l10n = context.l10n;
   final settings = ref.watch(tavernSettingsProvider);
   final stTheme = ref.watch(tavernStThemeProvider);
-  final hasKey = ref.watch(settingsProvider.select((s) => s.hasApiKey));
+  final signedIn = ref.watch(quWorkAuthProvider.select((s) => s.signedIn));
   final startup = ref.watch(appModeProvider.select((s) => s.startup));
   final controller = ref.read(tavernSettingsProvider.notifier);
   final defaultPersona = ref.watch(tavernPersonaSelectionProvider(null)).value?.persona;
@@ -95,17 +94,15 @@ List<Widget> tavernSettingsGroups(BuildContext context, WidgetRef ref) {
     margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
     children: [
       ...tavernModelRows(context, ref, keyPrefix: 'tavern'),
-      const TavernAuxiliaryTile(),
-      // An added channel's key is on that channel.
-      if (settings.activeChannel == null)
-        SettingsTile(
-          key: const ValueKey('tavern-key'),
-          icon: hasKey ? AppIcons.apiKey : AppIcons.noApiKey,
-          title: l10n.tavernApiKey,
-          value: Text(hasKey ? l10n.tavernApiKeySet : l10n.tavernApiKeyMissing),
-          onTap: () =>
-              Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ApiKeyPage(onboarding: false))),
-        ),
+      // QuWork is the only model account. The row is always visible so an
+      // old saved tavern channel cannot hide the actual account entry.
+      SettingsTile(
+        key: const ValueKey('tavern-key'),
+        icon: signedIn ? AppIcons.account : AppIcons.noApiKey,
+        title: l10n.quworkLoginTitle,
+        value: Text(signedIn ? l10n.quworkLoginSignedIn : l10n.quworkLoginSignInHint),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const QuWorkLoginPage())),
+      ),
     ],
   );
   final generating = SheetGroup(

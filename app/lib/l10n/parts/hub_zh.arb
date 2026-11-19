@@ -64,13 +64,13 @@
   "hubSettingsAbout": "关于",
   "hubSettingsCommunity": "社区",
   "hubSettingsLicenses": "开源许可",
-  "hubSettingsAccount": "DeepSeek 账号",
+  "hubSettingsAccount": "QuWork 账号",
   "hubSettingsSigningIn": "正在登录…",
   "hubSettingsInvalidKey": "Key 无效，查不到余额",
-  "hubSettingsNoApiKey": "未设置 API Key",
-  "hubSettingsApiKeyHint": "填写 Key 后即可对话",
-  "hubSettingsSignInAccount": "登录 DeepSeek 账号",
-  "hubSettingsOrApiKey": "或填写 API Key",
+  "hubSettingsNoApiKey": "未登录 QuWork",
+  "hubSettingsApiKeyHint": "登录 QuWork 后即可对话",
+  "hubSettingsSignInAccount": "登录 QuWork 账号",
+  "hubSettingsOrApiKey": "模型用量由 QuWork 统一统计",
   "hubPluginShare": "分享插件",
   "hubPluginDetails": "插件详情",
   "hubPluginFeatured": "dshfind 推荐",
@@ -231,7 +231,7 @@
       }
     }
   },
-  "hubSettingsApiKey": "DeepSeek API Key",
+  "hubSettingsApiKey": "QuWork 模型凭据",
   "hubPluginBrowserFailed": "没能打开浏览器，请手动访问 {address}",
   "@hubPluginBrowserFailed": {
     "placeholders": {
