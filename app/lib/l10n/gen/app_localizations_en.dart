@@ -5064,7 +5064,19 @@ class L10nEn extends L10n {
   String get quworkLoginSignOut => 'Sign out';
 
   @override
-  String get quworkCaptchaToken => 'Slider ticket (for simulator tests)';
+  String get quworkCaptchaTitle => 'Verification';
+
+  @override
+  String get quworkCaptchaHint => 'Slide to complete the check';
+
+  @override
+  String get quworkCaptchaCancelled => 'Verification not completed';
+
+  @override
+  String get quworkCaptchaFailed => 'Verification failed; try again';
+
+  @override
+  String get quworkCaptchaTimeout => 'Verification timed out; try again';
 
   @override
   String get quworkWechatLogin => 'Sign in with WeChat';

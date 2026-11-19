@@ -198,13 +198,6 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
-  quwork_api:
-    dependency: "direct main"
-    description:
-      path: "../packages/quwork_api"
-      relative: true
-    source: path
-    version: "0.1.0"
   dsh_tavern:
     dependency: "direct main"
     description:
@@ -880,6 +873,13 @@ packages:
       url: "https://mirrors.tuna.tsinghua.edu.cn/dart-pub/"
     source: hosted
     version: "3.2.2"
+  quwork_api:
+    dependency: "direct main"
+    description:
+      path: "../packages/quwork_api"
+      relative: true
+    source: path
+    version: "0.1.0"
   re_highlight:
     dependency: "direct main"
     description:

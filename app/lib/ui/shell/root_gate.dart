@@ -44,8 +44,9 @@ import 'usage_upgrade_notice.dart';
 /// - The app runs without the runtime ([OnboardingPrefs.localDeclined]: a
 ///   remote host instead, or uninstalled) → home.
 /// - Runtime outdated → setup, which upgrades it.
-/// - Runtime missing → setup, which first asks 本机 or 远程主机 (welcome
-///   first on a truly fresh install).
+/// - Runtime missing → setup, which first asks 本机 or 远程主机. The legacy
+///   welcome page is kept for existing deep links and test fixtures, but is no
+///   longer part of the production launch path.
 /// - Runtime ready but nothing to talk to (no DeepSeek key, no custom provider
 ///   on the local engine), and the user never chose "稍后设置" → key entry.
 /// - Otherwise → home (`null`).
@@ -80,7 +81,7 @@ OnboardingStep? initialOnboardingStep({
     if (prefs.localDeclined) return null;
     // An upgrade (an older rootfs exists) skips the welcome and the choice.
     if (!runtimeStepAsks(status)) return OnboardingStep.runtime;
-    return prefs.welcomeSeen ? OnboardingStep.runtime : OnboardingStep.welcome;
+    return OnboardingStep.runtime;
   }
   if (!hasApiKey && !hasCustomProvider && !prefs.keySkipped) return OnboardingStep.apiKey;
   return null;

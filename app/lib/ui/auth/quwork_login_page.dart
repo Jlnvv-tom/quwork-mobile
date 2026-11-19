@@ -7,6 +7,17 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/l10n.dart';
 import '../../state/quwork_auth_state.dart';
 import '../shell/page_frame.dart';
+import 'aliyun_captcha.dart';
+
+/// The WeChat entry stays hidden on mobile.
+///
+/// `/api/oauth/wechat/url` hands back an `open.weixin.qq.com/connect/qrconnect`
+/// page — PC website authorisation, opened in the system browser, whose callback
+/// the user has to copy and paste back. A phone app has to authorise inside the
+/// WeChat App (`snsapi_userinfo` with an App-scheme callback) instead, so the
+/// button and its paste field are off until that flow exists. Kept behind a
+/// define so the desktop-shaped flow can still be exercised.
+const bool _wechatLoginAvailable = bool.fromEnvironment('QUWORK_WECHAT_LOGIN');
 
 class QuWorkLoginPage extends ConsumerStatefulWidget {
   const QuWorkLoginPage({super.key, this.embedded = false});
@@ -22,7 +33,6 @@ class QuWorkLoginPage extends ConsumerStatefulWidget {
 class _QuWorkLoginPageState extends ConsumerState<QuWorkLoginPage> {
   final _phone = TextEditingController();
   final _code = TextEditingController();
-  final _captcha = TextEditingController();
   final _wechatCallback = TextEditingController();
   Timer? _timer;
   int _remaining = 0;
@@ -32,7 +42,6 @@ class _QuWorkLoginPageState extends ConsumerState<QuWorkLoginPage> {
     _timer?.cancel();
     _phone.dispose();
     _code.dispose();
-    _captcha.dispose();
     _wechatCallback.dispose();
     super.dispose();
   }
@@ -43,9 +52,23 @@ class _QuWorkLoginPageState extends ConsumerState<QuWorkLoginPage> {
       _show(context.l10n.quworkLoginPhoneInvalid);
       return;
     }
-    final result = await ref
-        .read(quWorkAuthProvider.notifier)
-        .sendCode(phone, captcha: _captcha.text.trim().isEmpty ? null : _captcha.text.trim());
+    // The account service reads the slider ticket from the `aliyun_captcha`
+    // query parameter, so the challenge runs right before the code request.
+    String? ticket;
+    if (AliyunCaptchaSettings.defaults.enabled) {
+      final outcome = await showAliyunCaptcha(context);
+      if (!mounted) return;
+      switch (outcome) {
+        case AliyunCaptchaDismissed():
+          return;
+        case AliyunCaptchaFailed(:final message):
+          _show(message);
+          return;
+        case AliyunCaptchaPassed(:final param):
+          ticket = param;
+      }
+    }
+    final result = await ref.read(quWorkAuthProvider.notifier).sendCode(phone, captcha: ticket);
     if (!mounted || result == null) return;
     _show(result.message.isEmpty ? context.l10n.quworkLoginCodeSent : result.message);
     _timer?.cancel();
@@ -123,13 +146,6 @@ class _QuWorkLoginPageState extends ConsumerState<QuWorkLoginPage> {
           ),
         ),
         SettingsSectionLike(
-          child: TextField(
-            controller: _captcha,
-            decoration: InputDecoration(labelText: context.l10n.quworkCaptchaToken),
-            obscureText: true,
-          ),
-        ),
-        SettingsSectionLike(
           child: Row(
             children: [
               Expanded(
@@ -157,28 +173,30 @@ class _QuWorkLoginPageState extends ConsumerState<QuWorkLoginPage> {
             child: Text(auth.busy ? context.l10n.quworkLoginWorking : context.l10n.quworkLoginSubmit),
           ),
         ),
-        SettingsSectionLike(
-          child: OutlinedButton.icon(
-            onPressed: auth.busy ? null : _wechatLogin,
-            icon: const Icon(Icons.chat_bubble_outline),
-            label: Text(context.l10n.quworkWechatLogin),
-          ),
-        ),
-        if (auth.phase == QuWorkAuthPhase.wechatBindingRequired || auth.error?.code == 'wechat_bind_required')
+        if (_wechatLoginAvailable) ...[
           SettingsSectionLike(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(context.l10n.quworkWechatBindRequired),
-                TextField(
-                  controller: _wechatCallback,
-                  decoration: InputDecoration(labelText: context.l10n.quworkWechatCallback),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(onPressed: _finishWechatCallback, child: Text(context.l10n.quworkWechatFinish)),
-              ],
+            child: OutlinedButton.icon(
+              onPressed: auth.busy ? null : _wechatLogin,
+              icon: const Icon(Icons.chat_bubble_outline),
+              label: Text(context.l10n.quworkWechatLogin),
             ),
           ),
+          if (auth.phase == QuWorkAuthPhase.wechatBindingRequired || auth.error?.code == 'wechat_bind_required')
+            SettingsSectionLike(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(context.l10n.quworkWechatBindRequired),
+                  TextField(
+                    controller: _wechatCallback,
+                    decoration: InputDecoration(labelText: context.l10n.quworkWechatCallback),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton(onPressed: _finishWechatCallback, child: Text(context.l10n.quworkWechatFinish)),
+                ],
+              ),
+            ),
+        ],
       ],
     );
   }

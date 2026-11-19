@@ -80,10 +80,10 @@ void main() {
       expect(initialOnboardingStep(status: upgrade, hasApiKey: true, prefs: declined), isNull);
     });
 
-    test('not declined: welcome on a fresh phone, the choice after it', () {
+    test('not declined: a fresh phone opens the runtime choice directly', () {
       expect(
         initialOnboardingStep(status: missingStatus, hasApiKey: false, prefs: const OnboardingPrefs(loaded: true)),
-        OnboardingStep.welcome,
+        OnboardingStep.runtime,
       );
       expect(initialOnboardingStep(status: missingStatus, hasApiKey: false, prefs: seen), OnboardingStep.runtime);
     });

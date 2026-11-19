@@ -4763,7 +4763,19 @@ class L10nZh extends L10n {
   String get quworkLoginSignOut => '退出登录';
 
   @override
-  String get quworkCaptchaToken => '滑块验证票据（测试可填）';
+  String get quworkCaptchaTitle => '人机验证';
+
+  @override
+  String get quworkCaptchaHint => '请拖动滑块完成验证';
+
+  @override
+  String get quworkCaptchaCancelled => '人机验证未完成';
+
+  @override
+  String get quworkCaptchaFailed => '人机验证失败，请重试';
+
+  @override
+  String get quworkCaptchaTimeout => '人机验证超时，请重试';
 
   @override
   String get quworkWechatLogin => '微信扫码登录';

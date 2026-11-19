@@ -8756,11 +8756,35 @@ abstract class L10n {
   /// **'退出登录'**
   String get quworkLoginSignOut;
 
-  /// No description provided for @quworkCaptchaToken.
+  /// No description provided for @quworkCaptchaTitle.
   ///
   /// In zh, this message translates to:
-  /// **'滑块验证票据（测试可填）'**
-  String get quworkCaptchaToken;
+  /// **'人机验证'**
+  String get quworkCaptchaTitle;
+
+  /// No description provided for @quworkCaptchaHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请拖动滑块完成验证'**
+  String get quworkCaptchaHint;
+
+  /// No description provided for @quworkCaptchaCancelled.
+  ///
+  /// In zh, this message translates to:
+  /// **'人机验证未完成'**
+  String get quworkCaptchaCancelled;
+
+  /// No description provided for @quworkCaptchaFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'人机验证失败，请重试'**
+  String get quworkCaptchaFailed;
+
+  /// No description provided for @quworkCaptchaTimeout.
+  ///
+  /// In zh, this message translates to:
+  /// **'人机验证超时，请重试'**
+  String get quworkCaptchaTimeout;
 
   /// No description provided for @quworkWechatLogin.
   ///

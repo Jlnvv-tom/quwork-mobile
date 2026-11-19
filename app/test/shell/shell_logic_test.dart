@@ -44,10 +44,10 @@ void main() {
     const seen = OnboardingPrefs(loaded: true, welcomeSeen: true);
     const skipped = OnboardingPrefs(loaded: true, welcomeSeen: true, keySkipped: true);
 
-    test('fresh install starts at the welcome page', () {
+    test('fresh install starts at the runtime choice page', () {
       expect(
         initialOnboardingStep(status: _status(RuntimePhase.notInstalled), hasApiKey: false, prefs: fresh),
-        OnboardingStep.welcome,
+        OnboardingStep.runtime,
       );
     });
 
