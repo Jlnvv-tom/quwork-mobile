@@ -21701,16 +21701,16 @@ class L10nEn extends L10n {
   String get tavernNext => 'Next reply';
 
   @override
-  String get tavernErrorNoKey => 'Add a DeepSeek API key in Settings first';
+  String get tavernErrorNoKey => 'Sign in to QuWork first';
 
   @override
-  String get tavernKeyMissing => 'Add your DeepSeek API key, and the story can start.';
+  String get tavernKeyMissing => 'Sign in to QuWork to start the conversation.';
 
   @override
-  String get tavernKeyMissingAction => 'Add key';
+  String get tavernKeyMissingAction => 'Sign in';
 
   @override
-  String get tavernErrorBadKey => 'The API key was refused; check it in Settings';
+  String get tavernErrorBadKey => 'The QuWork model credential was refused; sign in again';
 
   @override
   String get tavernErrorBusy => 'The model is busy; try again in a moment';
@@ -21729,7 +21729,7 @@ class L10nEn extends L10n {
   String get tavernFiltered => 'The model\'s content filter stopped part of this reply.';
 
   @override
-  String get tavernErrorBalance => 'Your DeepSeek balance is too low. Top up, then try again';
+  String get tavernErrorBalance => 'The QuWork model request was refused; check the account and retry';
 
   @override
   String get tavernErrorParameters => 'The model didn\'t accept this request\'s parameters';
@@ -21763,13 +21763,13 @@ class L10nEn extends L10n {
   String get tavernThinkingSubtitle => 'Think before replying';
 
   @override
-  String get tavernApiKey => 'DeepSeek API key';
+  String get tavernApiKey => 'QuWork account';
 
   @override
-  String get tavernApiKeySet => 'Set';
+  String get tavernApiKeySet => 'Signed in';
 
   @override
-  String get tavernApiKeyMissing => 'Not set';
+  String get tavernApiKeyMissing => 'Not signed in';
 
   @override
   String get tavernDeleteChat => 'Delete chat';
@@ -23644,7 +23644,7 @@ class L10nEn extends L10n {
   }
 
   @override
-  String get tavernComposerNoKey => 'Add a key to begin';
+  String get tavernComposerNoKey => 'Sign in to QuWork to begin';
 
   @override
   String get tavernWriteOwn => 'Write your own character';

@@ -67,7 +67,7 @@ npm run quwork:sync -- --push    # 同步后推送到 origin
 
 One-API 账号控制面和模型接口分开配置：
 
-- 账号接口：`QUWORK_API_BASE_URL`，例如 `/api/user/client/login`、`/api/user/self`、`/api/sendVerifyCode`。
+- 账号接口：`QUWORK_API_BASE_URL`，例如 `/api/user/login`、`/api/user/self`、`/api/sendVerifyCode`、`/api/token/`。
 - OpenAI 兼容模型接口：`QUWORK_LLM_BASE_URL`，例如 `/v1/models`、`/v1/chat/completions`。
 
 ### 正式服
@@ -159,7 +159,7 @@ npm run quwork:apk
 npm run quwork:apk:release
 ```
 
-产物：`app/build/app/outputs/flutter-apk/app-arm64-release.apk`。Release 构建仍需要仓库规定的运行时资源和签名配置；没有 `app/android/key.properties` 时使用本地回退签名，不能当作发布包。
+产物：`app/build/app/outputs/flutter-apk/app-arm64-release.apk`。Release 构建仍需要仓库规定的运行时资源和签名配置；没有 `app/android/key.properties` 时使用本地回退签名，不能当作发布包。想省掉本机构建时用 `.github/workflows/release-apk.yml`（推 `v*` tag 或手动触发），它用仓库 secrets 里的正式密钥出包并校验签名，见 [docs/release.md](docs/release.md) 的「流水线出包」。
 
 ### 指定版本和 ABI
 
@@ -179,10 +179,9 @@ tooling/build-apk.sh --debug -f x64
 | 能力 | 方法和路径 |
 |---|---|
 | 手机发码 | `POST /api/sendVerifyCode` |
-| 手机登录 | `POST /api/user/client/login` |
+| 手机登录 | `POST /api/user/login` |
 | 当前用户 | `GET /api/user/self` |
-| 刷新 token | `GET /api/user/refresh` |
-| 可用模型 | `GET /api/user/available_models` |
+| 模型 API-Key | `GET/POST /api/token/` |
 | 微信登录 URL | `GET /api/oauth/wechat/url` |
 | 微信回调 | `GET /api/oauth/wechat` |
 | 绑定微信 | `POST /api/user/wechat/bind` |
@@ -197,3 +196,4 @@ tooling/build-apk.sh --debug -f x64
 - App 仍显示旧页面：执行上面的 `pm clear`，再运行 `npm run quwork:emu`。
 - 登录页请求失败：先确认 `npm run quwork:mock` 或 `npm run quwork:emu` 的 Mock 日志，再确认模拟器使用 `10.0.2.2`，不要填 `127.0.0.1`。
 - 开发服启动拒绝：确认设置了 `QUWORK_DEV_API_BASE_URL`，并且开发服允许模拟器来源和测试账号。
+- 登录成功后，App 使用 QuWork 账号令牌读取或创建该账号的模型 API-Key，再请求 `QUWORK_DEV_LLM_BASE_URL/models` 和 `QUWORK_LLM_BASE_URL/chat/completions`；不会请求 `api.deepseek.com`。

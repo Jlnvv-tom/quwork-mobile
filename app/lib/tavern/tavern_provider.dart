@@ -1,9 +1,9 @@
 // The app's one [Tavern]: the engine (packages/dsh_tavern) opened on
 // `<app support>/tavern`. It opens asynchronously, so the screens get a
-// [DeferredTavern] that queues calls until it is ready. It follows 酒馆设置's
-// channel and reads that channel's key (the app's DeepSeek key for the
-// built-in one) on every call; the engine never stores a key. Tests swap in
-// the preview stand-in (tavern_preview.dart).
+// [DeferredTavern] that queues calls until it is ready. Every model request
+// uses the logged-in QuWork bearer token and the QuWork OpenAI-compatible
+// endpoint; the engine never stores the token. Tests swap in the preview
+// stand-in (tavern_preview.dart).
 
 import 'package:dsh_tavern/dsh_tavern.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,15 +56,13 @@ TavernModelConfig quWorkTavernModelConfig({
   thinking: settings.thinking,
 );
 
-/// What the engine talks to under [settings]: the channel in use, and the
-/// 辅助模型 when one is chosen. Each key is read on every call, the built-in
-/// channel's from the app's settings ([appKey]).
+/// Compatibility helper for upstream callers and package tests. The product
+/// provider above never calls this legacy upstream configuration path.
 TavernModelConfig tavernModelConfig(
   TavernSettings settings, {
   required String Function() appKey,
   required TavernChannelKeys keys,
 }) {
-  // DeepSeek's own (null) or an added channel.
   TavernModelConfig config(
     TavernChannel? channel,
     String model, {
@@ -87,7 +85,6 @@ TavernModelConfig tavernModelConfig(
     settings.activeChannel,
     settings.activeModel,
     thinking: settings.thinking,
-    // 辅助模型: thinking off, as the engine's own choice has it.
     auxiliary: switch (settings.auxiliary) {
       tavernAuxiliaryDeepSeek => config(null, tavernModels.first),
       _ when helper != null => config(helper, helper.model),
@@ -131,10 +128,13 @@ final tavernPersonaSelectionProvider = FutureProvider.family<PersonaSelection, S
   return ref.watch(tavernProvider).personaSelection(chatId: chatId);
 });
 
-/// No reply can be asked for until a key is in: only DeepSeek's own channel
-/// needs the app's key; an added one brings its own (or needs none).
-final tavernNeedsKeyProvider = Provider<bool>(
-  (ref) =>
-      !ref.watch(quWorkAuthProvider.select((s) => s.hasModelCredential)) ||
-      ref.watch(quWorkModelsProvider).models.isEmpty,
-);
+/// No model reply can be asked for until the QuWork account and its entitled
+/// models are ready. There is no DeepSeek API-key path in the product.
+final tavernNeedsQuWorkProvider = Provider<bool>((ref) {
+  final auth = ref.watch(quWorkAuthProvider);
+  final models = ref.watch(quWorkModelsProvider);
+  return !auth.signedIn || !auth.hasModelCredential || models.models.isEmpty;
+});
+
+/// Source compatibility for older callers. It has QuWork-only semantics.
+final tavernNeedsKeyProvider = tavernNeedsQuWorkProvider;

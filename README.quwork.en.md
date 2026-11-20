@@ -70,6 +70,6 @@ To clear only emulator app data: `adb -s "${QUWORK_ANDROID_DEVICE:-emulator-5554
 
 ## APK builds
 
-`npm run quwork:apk` creates `app/build/app/outputs/flutter-apk/app-arm64-debug.apk` with Mock endpoints. `npm run quwork:apk:release` creates the production Release APK and uses the repository signing/runtime requirements. For other ABIs or version names, use `tooling/build-apk.sh` directly.
+`npm run quwork:apk` creates `app/build/app/outputs/flutter-apk/app-arm64-debug.apk` with Mock endpoints. `npm run quwork:apk:release` creates the production Release APK and uses the repository signing/runtime requirements. To skip the local build, `.github/workflows/release-apk.yml` builds it on a `v*` tag or by hand with the release key from repository secrets and verifies the signature; see "流水线出包" in [docs/release.md](docs/release.md). For other ABIs or version names, use `tooling/build-apk.sh` directly.
 
-The current account endpoints are `POST /api/sendVerifyCode`, `POST /api/user/client/login`, `GET /api/user/self`, `GET /api/user/refresh`, `GET /api/user/available_models`, and the WeChat/login-out routes documented in the Chinese README. Model traffic uses `/v1/models` and `/v1/chat/completions`. One-API JWTs are control-plane credentials and must not become long-lived Gateway connection keys.
+The current account endpoints are `POST /api/sendVerifyCode`, `POST /api/user/login`, `GET /api/user/self`, and `GET /api/token/`; model traffic uses the QuWork API-Key returned by that account session at `/v1/models` and `/v1/chat/completions`. The app never calls `api.deepseek.com`.

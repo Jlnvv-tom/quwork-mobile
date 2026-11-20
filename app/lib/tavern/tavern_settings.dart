@@ -10,11 +10,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'tavern_channels.dart';
 
-/// [TavernSettings.auxiliary] for DeepSeek's flash with the app's key.
+/// [TavernSettings.auxiliary] for the legacy upstream preference format.
 const tavernAuxiliaryDeepSeek = 'deepseek';
 
-/// The DeepSeek models offered as choices, cheapest first; any other name
-/// can be typed.
+/// Legacy upstream model choices retained for preference/test compatibility.
+/// Product UI replaces these with QuWork's entitlement list.
 const tavernModels = ['deepseek-flash', 'deepseek-v4-pro'];
 
 /// How a chat is laid out (docs/design/roleplay-ui.md §4): bubbles, full
@@ -79,7 +79,7 @@ class TavernSettings {
     this.loaded = false,
   });
 
-  /// DeepSeek's model, when the built-in channel is the one in use.
+  /// Last selected model. The product's live QuWork entitlement list overrides it.
   final String model;
 
   /// The id of the channel in use, one of [channels]; null is DeepSeek's own.

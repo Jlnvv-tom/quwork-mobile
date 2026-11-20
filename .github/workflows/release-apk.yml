@@ -1,0 +1,190 @@
+# Builds the signed arm64 release APK on a tag (or by hand), so a release does not
+# start with a 30-minute build on the release machine:
+#
+#   git tag v1.2.0 && git push origin v1.2.0   # builds, verifies, keeps the APK as an artifact
+#   gh workflow run release-apk.yml            # same, for the current branch
+#
+# This pipeline only produces the APK and SHA256SUMS. Publishing still follows
+# docs/release.md: python3 tooling/release_assets.py (dist/, update.json, patches),
+# then services/share-worker/scripts/publish-release.sh (R2, dl, GitHub, beta).
+# It deliberately does not create the GitHub release: that script owns the notes,
+# the draft-to-published order and the other two lines, and a CI-created release
+# would be published before any of them.
+#
+# Needs repository secrets (Settings → Secrets and variables → Actions):
+#   DSH_KEYSTORE_BASE64    release keystore: base64 -w0 release.jks
+#   DSH_KEYSTORE_PASSWORD  storePassword in key.properties
+#   DSH_KEY_ALIAS          keyAlias
+#   DSH_KEY_PASSWORD       keyPassword
+# Missing any of them fails the job on purpose: docs/release.md forbids publishing
+# an APK that fell back to the debug key.
+name: Release APK
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.47.7
+  GRADLE_VERSION: 9.3.1
+  TZ: Asia/Shanghai
+
+jobs:
+  apk:
+    name: arm64 release APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      DSH_MAVEN_MIRRORS: 0 # The Aliyun mirrors are slow and unreliable from a US runner.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: The tag is the version in pubspec
+        if: github.ref_type == 'tag'
+        run: |
+          version=$(sed -n 's/^version:[[:space:]]*\([^+[:space:]]*\).*/\1/p' app/pubspec.yaml)
+          if [[ "v$version" != "$GITHUB_REF_NAME" ]]; then
+            echo "tag $GITHUB_REF_NAME does not match app/pubspec.yaml version $version" >&2
+            exit 1
+          fi
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      # gradlew is not tracked; Flutter asks this gradle for the wrapper.
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+      # The APK bundles runtime/out/arm64-v8a; build-apk.sh refuses a release
+      # without it. Same cache key as runtime.yml, so the two share downloads.
+      - name: Restore the runtime download cache
+        id: runtime-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: runtime/.cache
+          key: runtime-downloads-v1-${{ hashFiles('runtime/build-runtime.sh', 'runtime/locks/**') }}
+          restore-keys: runtime-downloads-v1-
+      - name: Build the arm64 runtime
+        run: runtime/build-runtime.sh arm64-v8a
+      - name: Check the runtime bundle
+        run: python3 -I tooling/check_runtime_bundle.py arm64
+      - name: Save the runtime download cache
+        if: steps.runtime-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: runtime/.cache
+          key: ${{ steps.runtime-cache.outputs.cache-primary-key }}
+      # libtawcroot.so is compiled from a pinned tawc commit with a pinned NDK, and a
+      # release build fails without it. The runner image does not carry that NDK.
+      - name: NDK for libtawcroot.so
+        run: |
+          version=$(python3 -c 'import json; print(json.load(open("runtime/tawcroot/source.json"))["ndkVersion"])')
+          if [[ ! -d "$ANDROID_HOME/ndk/$version" ]]; then
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$version" >/dev/null
+          fi
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$version" >> "$GITHUB_ENV"
+      - name: Write the release key from secrets
+        env:
+          KEYSTORE: ${{ secrets.DSH_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.DSH_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.DSH_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.DSH_KEY_PASSWORD }}
+        run: |
+          missing=()
+          [[ -n "$KEYSTORE" ]] || missing+=(DSH_KEYSTORE_BASE64)
+          [[ -n "$STORE_PASSWORD" ]] || missing+=(DSH_KEYSTORE_PASSWORD)
+          [[ -n "$KEY_ALIAS" ]] || missing+=(DSH_KEY_ALIAS)
+          [[ -n "$KEY_PASSWORD" ]] || missing+=(DSH_KEY_PASSWORD)
+          if ((${#missing[@]})); then
+            echo "missing repository secrets: ${missing[*]}" >&2
+            echo "a release APK must not fall back to the debug key (docs/release.md)" >&2
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            printf 'storeFile=%s\n' "$RUNNER_TEMP/release.jks"
+            printf 'storePassword=%s\n' "$STORE_PASSWORD"
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+          } > app/android/key.properties
+      - name: Flutter plugins and local.properties
+        working-directory: app
+        run: |
+          flutter pub get --enforce-lockfile
+          printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$ANDROID_HOME" "$FLUTTER_ROOT" > android/local.properties
+      - name: Generated text matches its sources
+        run: |
+          python3 app/tool/l10n_merge.py --check
+          python3 app/tool/guide_sync.py --check
+      # Same dart-defines as `npm run quwork:apk:release` (tooling/quwork-android.sh
+      # --backend prod), minus its adb/emulator step: a runner has no device. Override
+      # the endpoints with repository variables when a build must not point at
+      # production. build-apk.sh picks up runtime/out, libtawcroot.so, key.properties
+      # and the build-minute versionCode.
+      - name: Build the APK
+        env:
+          API_BASE: ${{ vars.QUWORK_PROD_API_BASE_URL }}
+          LLM_BASE: ${{ vars.QUWORK_PROD_LLM_BASE_URL }}
+        run: |
+          tooling/build-apk.sh --release -f arm64 -- \
+            "--dart-define=QUWORK_API_BASE_URL=${API_BASE:-https://llm.rrzu.com}" \
+            "--dart-define=QUWORK_LLM_BASE_URL=${LLM_BASE:-https://llm.rrzu.com/v1}"
+      - name: The APK is signed with the release key
+        run: |
+          apk=app/build/app/outputs/flutter-apk/app-arm64-release.apk
+          apksigner=$(ls -1d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)
+          if ! "$apksigner" verify -v --min-sdk-version 21 --print-certs "$apk" > "$RUNNER_TEMP/apksigner.txt" 2>&1; then
+            cat "$RUNNER_TEMP/apksigner.txt" >&2
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/apksigner.txt"
+          for scheme in v1 v2 v3; do
+            grep -q "^Verified using $scheme scheme .*: true$" "$RUNNER_TEMP/apksigner.txt" ||
+              { echo "APK is not signed with scheme $scheme" >&2; exit 1; }
+          done
+          if grep -q 'CN=Android Debug' "$RUNNER_TEMP/apksigner.txt"; then
+            echo "the APK carries the debug certificate; the release key was not used" >&2
+            exit 1
+          fi
+          grep 'certificate SHA-256 digest' "$RUNNER_TEMP/apksigner.txt"
+      - name: Name the asset and checksum it
+        run: |
+          version=$(sed -n 's/^version:[[:space:]]*\([^+[:space:]]*\).*/\1/p' app/pubspec.yaml)
+          mkdir -p dist
+          cp app/build/app/outputs/flutter-apk/app-arm64-release.apk "dist/dsh-go-$version-arm64.apk"
+          (cd dist && sha256sum "dsh-go-$version-arm64.apk" > SHA256SUMS && cat SHA256SUMS)
+          {
+            echo "### dsh-go $version (arm64)"
+            echo
+            echo '```'
+            cat "dist/SHA256SUMS"
+            echo '```'
+            echo
+            echo 'Download it with `gh run download <run-id> -n dsh-go-'"$version"'-arm64 -D dist`,'
+            echo 'then follow docs/release.md from `tooling/release_assets.py`.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dsh-go-${{ github.ref_name }}-arm64
+          path: dist/
+          retention-days: 14
+          if-no-files-found: error
+      # The key properties and the keystore only exist for this job.
+      - name: Drop the key material
+        if: always()
+        run: rm -f app/android/key.properties "$RUNNER_TEMP/release.jks"

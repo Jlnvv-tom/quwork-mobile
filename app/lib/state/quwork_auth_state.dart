@@ -73,6 +73,9 @@ final quWorkAuthStoreProvider = Provider<QuWorkAuthStore>((ref) => const SecureQ
 final quWorkApiProvider = Provider<QuWorkAuthApi>((ref) {
   final api = QuWorkAuthApi(
     baseUri: Uri.parse(const String.fromEnvironment('QUWORK_API_BASE_URL', defaultValue: 'https://llm.rrzu.com')),
+    modelBaseUri: Uri.parse(
+      const String.fromEnvironment('QUWORK_LLM_BASE_URL', defaultValue: 'https://llm.rrzu.com/v1'),
+    ),
   );
   ref.onDispose(api.close);
   return api;
@@ -100,6 +103,13 @@ class QuWorkAuthController extends Notifier<QuWorkAuthState> {
     return token is String && token.isNotEmpty ? token : null;
   }
 
+  Future<String?> sessionCookie() async {
+    final raw = await _store.read(_recordKey);
+    final map = raw == null ? null : jsonDecode(raw);
+    final cookie = map is Map ? map['sessionCookie'] : null;
+    return cookie is String && cookie.isNotEmpty ? cookie : null;
+  }
+
   Future<String?> modelToken() async {
     final raw = await _store.read(_recordKey);
     final map = raw == null ? null : jsonDecode(raw);
@@ -118,11 +128,14 @@ class QuWorkAuthController extends Notifier<QuWorkAuthState> {
       final raw = await _store.read(_recordKey);
       final map = raw == null ? null : jsonDecode(raw);
       final token = map is Map ? map['token'] : null;
+      final sessionCookie = map is Map ? map['sessionCookie'] : null;
       final expiry = map is Map ? map['expiresAt'] : null;
       final llmToken = map is Map && map['llmToken'] is String ? map['llmToken'] as String : null;
       final expires = expiry is String ? DateTime.tryParse(expiry) : null;
-      if (token is String && token.isNotEmpty && expires != null) {
-        final user = await _api.self(token);
+      if ((token is String && token.isNotEmpty || sessionCookie is String && sessionCookie.isNotEmpty) &&
+          expires != null) {
+        _api.setSessionCookie(sessionCookie is String ? sessionCookie : null);
+        final user = await _api.self(token is String && token.isNotEmpty ? token : null);
         if (_live(generation)) {
           state = QuWorkAuthState(
             phase: QuWorkAuthPhase.signedIn,
@@ -171,6 +184,7 @@ class QuWorkAuthController extends Notifier<QuWorkAuthState> {
             'token': result.token,
             'expiresAt': result.expiresAt.toIso8601String(),
             'llmToken': ?result.llmToken,
+            'sessionCookie': ?result.sessionCookie,
           }),
         ),
       );
@@ -242,6 +256,7 @@ class QuWorkAuthController extends Notifier<QuWorkAuthState> {
           'token': result.token,
           'expiresAt': result.expiresAt.toIso8601String(),
           'llmToken': ?result.llmToken,
+          'sessionCookie': ?result.sessionCookie,
         }),
       ),
     );
@@ -256,8 +271,8 @@ class QuWorkAuthController extends Notifier<QuWorkAuthState> {
   }
 
   Future<List<QuWorkModel>> availableModels() async {
-    final token = await accessToken();
-    if (token == null) throw const QuWorkApiException('token_expired', '登录已过期');
+    final token = await modelToken();
+    if (token == null) throw const QuWorkApiException('model_credential_missing', 'QuWork 模型凭据缺失');
     return _api.availableModelDetails(token);
   }
 
@@ -268,7 +283,11 @@ class QuWorkAuthController extends Notifier<QuWorkAuthState> {
       final map = raw == null ? null : jsonDecode(raw);
       final token = map is Map && map['token'] is String ? map['token'] as String : null;
       final llmToken = map is Map && map['llmToken'] is String ? map['llmToken'] as String : null;
-      if (token == null) throw const QuWorkApiException('token_expired', '登录已过期');
+      final sessionCookie = map is Map && map['sessionCookie'] is String ? map['sessionCookie'] as String : null;
+      if ((token == null || token.isEmpty) && (sessionCookie == null || sessionCookie.isEmpty)) {
+        throw const QuWorkApiException('token_expired', '登录已过期');
+      }
+      _api.setSessionCookie(sessionCookie);
       final result = await _api.refresh(token);
       final nextLlmToken = result.llmToken ?? llmToken;
       await _inOrder(
@@ -278,6 +297,7 @@ class QuWorkAuthController extends Notifier<QuWorkAuthState> {
             'token': result.token,
             'expiresAt': result.expiresAt.toIso8601String(),
             'llmToken': ?nextLlmToken,
+            'sessionCookie': ?result.sessionCookie,
           }),
         ),
       );
@@ -301,7 +321,13 @@ class QuWorkAuthController extends Notifier<QuWorkAuthState> {
       final raw = await _store.read(_recordKey);
       final map = raw == null ? null : jsonDecode(raw);
       final token = map is Map && map['token'] is String ? map['token'] as String : null;
-      if (token != null) await _api.logout(token);
+      final sessionCookie = map is Map && map['sessionCookie'] is String ? map['sessionCookie'] as String : null;
+      _api.setSessionCookie(sessionCookie);
+      if (token != null) {
+        await _api.logout(token);
+      } else if (sessionCookie != null) {
+        await _api.logout();
+      }
     } on Object {
       // Local removal is still attempted; the server may be unreachable.
     }

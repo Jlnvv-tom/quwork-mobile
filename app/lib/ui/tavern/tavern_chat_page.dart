@@ -18,10 +18,12 @@ import '../../speech/read_aloud.dart';
 import '../../speech/voice_cloud.dart';
 import '../speech/speech_ui.dart';
 import '../../state/connection_state.dart';
+import '../../state/quwork_auth_state.dart';
 import '../../state/settings_state.dart';
 import '../../state/voice_model_state.dart';
 import '../../state/voice_settings.dart';
 import '../../state/voice_state.dart';
+import '../../state/quwork_models_state.dart';
 import '../../tavern/tavern_backgrounds.dart';
 import '../../tavern/tavern_bookmarks.dart';
 import '../../tavern/tavern_live2d.dart';
@@ -747,9 +749,13 @@ class _TavernChatPageState extends ConsumerState<TavernChatPage> {
   /// 点名 (a group): [characterId] replies next, to what is in the box or to
   /// nothing; muted or not.
   void _speak(String characterId) {
+    unawaited(_speakWithQuWork(characterId));
+  }
+
+  Future<void> _speakWithQuWork(String characterId) async {
     if (_running) return;
-    if (_tavern is! TavernPreview && ref.read(tavernNeedsKeyProvider)) {
-      _openKeySettings();
+    if (_tavern is! TavernPreview && !await _ensureQuWorkAccess()) {
+      _openQuWorkLoginOrRefresh();
       return;
     }
     unawaited(HapticFeedback.selectionClick());
@@ -914,6 +920,10 @@ class _TavernChatPageState extends ConsumerState<TavernChatPage> {
   }
 
   void _send() {
+    unawaited(_sendWithQuWork());
+  }
+
+  Future<void> _sendWithQuWork() async {
     if (_running) return;
     _quietTavern();
     // A slash command (/sys, /send: no model, so no key needed).
@@ -923,8 +933,8 @@ class _TavernChatPageState extends ConsumerState<TavernChatPage> {
       return;
     }
     // No key yet: the line would only fail. Keep it, and go and add one.
-    if (_tavern is! TavernPreview && ref.read(tavernNeedsKeyProvider)) {
-      _openKeySettings();
+    if (_tavern is! TavernPreview && !await _ensureQuWorkAccess()) {
+      _openQuWorkLoginOrRefresh();
       return;
     }
     if (slash != null) {
@@ -940,6 +950,12 @@ class _TavernChatPageState extends ConsumerState<TavernChatPage> {
       return;
     }
     _run(() => _afterMvu(() => _tavern.send(widget.chatId, text)), draft: text);
+  }
+
+  Future<bool> _ensureQuWorkAccess() async {
+    final ready = await ref.read(quWorkModelsProvider.notifier).ensureAccess();
+    if (!mounted) return false;
+    return ready;
   }
 
   /// /continue, /regen, /imp: as the message menu and 帮我写 do them, on the
@@ -1207,8 +1223,15 @@ class _TavernChatPageState extends ConsumerState<TavernChatPage> {
   }
 
   /// QuWork is the only account and model credential for tavern requests.
-  void _openKeySettings() =>
-      unawaited(Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const QuWorkLoginPage())));
+  void _openQuWorkLoginOrRefresh() {
+    if (ref.read(quWorkAuthProvider).signedIn) {
+      unawaited(ref.read(quWorkModelsProvider.notifier).refresh());
+      return;
+    }
+    unawaited(Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const QuWorkLoginPage())));
+  }
+
+  void _openKeySettings() => _openQuWorkLoginOrRefresh();
 
   Future<void> _sibling(TavernMessage message, int delta) async {
     if (_running) return;
@@ -1806,8 +1829,14 @@ class _TavernChatPageState extends ConsumerState<TavernChatPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // No key yet: say so before the first line, not after it fails.
-                if (!preview && _error == null && ref.watch(tavernNeedsKeyProvider))
-                  _KeyMissing(onAdd: _openKeySettings),
+                if (!preview && _error == null && ref.watch(tavernNeedsQuWorkProvider))
+                  _KeyMissing(
+                    message: ref.watch(quWorkAuthProvider).signedIn
+                        ? l10n.quworkLoginFailed
+                        : l10n.quworkLoginSignInHint,
+                    actionLabel: ref.watch(quWorkAuthProvider).signedIn ? l10n.commonRetry : l10n.commonSignIn,
+                    onAdd: _openKeySettings,
+                  ),
                 // 视觉小说 and the canvas draw no message rows: the newest
                 // reply's dice and what it asks to remember sit here instead.
                 if ((layout == TavernLayout.visualNovel || canvas) && !_running)
@@ -1870,8 +1899,8 @@ class _TavernChatPageState extends ConsumerState<TavernChatPage> {
                     onSendOptions: _input.text.isEmpty ? null : () => unawaited(_sendOptions()),
                     onStop: _stop,
                     voice: _voice,
-                    placeholder: !preview && ref.watch(tavernNeedsKeyProvider)
-                        ? l10n.tavernComposerNoKey
+                    placeholder: !preview && ref.watch(tavernNeedsQuWorkProvider)
+                        ? l10n.quworkLoginSignInHint
                         : l10n.tavernComposerHint(name),
                     leading: TavernPersonaKey(chatId: widget.chatId, enabled: !_running),
                     tray: !_running && messages != null && _input.text.trimLeft().startsWith('/')
@@ -2848,16 +2877,16 @@ class _Chrome extends StatelessWidget {
   );
 }
 
-/// Over the composer while no DeepSeek key is set: what is missing, and where
-/// it goes.
+/// Over the composer while the QuWork account/model access is not ready.
 class _KeyMissing extends StatelessWidget {
-  const _KeyMissing({required this.onAdd});
+  const _KeyMissing({required this.message, required this.actionLabel, required this.onAdd});
 
+  final String message;
+  final String actionLabel;
   final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     final theme = Theme.of(context);
     final dsh = DshColors.of(context);
     return Padding(
@@ -2869,10 +2898,10 @@ class _KeyMissing extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
         child: Row(
           children: [
-            Icon(AppIcons.noApiKey, size: 18, color: dsh.textTertiary),
+            Icon(AppIcons.account, size: 18, color: dsh.textTertiary),
             const SizedBox(width: 10),
-            Expanded(child: Text(l10n.tavernKeyMissing, style: theme.textTheme.bodySmall)),
-            TextButton(onPressed: onAdd, child: Text(l10n.tavernKeyMissingAction)),
+            Expanded(child: Text(message, style: theme.textTheme.bodySmall)),
+            TextButton(onPressed: onAdd, child: Text(actionLabel)),
           ],
         ),
       ),

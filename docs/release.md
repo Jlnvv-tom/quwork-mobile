@@ -108,6 +108,21 @@ versionCode = (年 - 2026) × 10^8 + MMDDhhmm      时钟固定按 UTC+8
 6. **内测期间**（`DOWNLOAD_ACCESS=key`）不加 `--github`，见下面「内测通道」。
 7. **验证**：在装着上一版的手机上 设置 → 关于 → 检查更新，走完下载和安装。
 
+## 流水线出包（`.github/workflows/release-apk.yml`）
+
+推 `v*` tag 或手动触发（`gh workflow run release-apk.yml`）时，在 GitHub 上打 arm64 正式包，省掉发版前那半小时本机构建：构建 `runtime/out/arm64-v8a`（复用 `runtime.yml` 的下载缓存）、按 `runtime/tawcroot/source.json` 装 NDK 编 `libtawcroot.so`、用 secrets 写 `app/android/key.properties`，再跑 `tooling/build-apk.sh` 并注入 `npm run quwork:apk:release` 用的那两个正式服 `--dart-define`（`QUWORK_API_BASE_URL` / `QUWORK_LLM_BASE_URL`，默认 `https://llm.rrzu.com`，可用仓库变量 `QUWORK_PROD_API_BASE_URL` / `QUWORK_PROD_LLM_BASE_URL` 覆盖），最后照第 3 步用 `apksigner` 校验（v1/v2/v3 都 `true`、证书不得是 `CN=Android Debug`）。产物是 `dsh-go-<版本>-arm64.apk` 与 `SHA256SUMS`，作为 Actions artifact 保留 14 天。
+
+- 仓库 secrets：`DSH_KEYSTORE_BASE64`（`base64 -w0 release.jks`）、`DSH_KEYSTORE_PASSWORD`、`DSH_KEY_ALIAS`、`DSH_KEY_PASSWORD`。缺任何一个直接失败，**不会退回 debug 签名**。
+- tag 触发时 tag 必须是 `v` + `app/pubspec.yaml` 的版本名；构建前还会跑 `l10n_merge.py --check` 和 `guide_sync.py --check`。
+- 它**不建 GitHub Release、不写 R2 / 公开下载桶、不碰内测通道**：这些仍由第 4、5 步和 `publish-release.sh` 负责（只跑 `gh release create` 会让内测清单停在旧版，见上面第 4 步）。拿产物继续发版：
+
+  ```sh
+  gh run download <run-id> -n dsh-go-<版本>-arm64 -D dist
+  python3 tooling/release_assets.py --notes notes.md   # 补齐 update.json 和增量补丁
+  ```
+
+- 流水线只证明"这版能打出签名一致的包"；真机安装、更新链路和真机行为仍按第 7 步和第「发版步骤」末尾的要求人工验证。
+
 ## 内测通道（go.dshtui.com/beta）
 
 内测包不公开：人凭**密钥**在 `https://go.dshtui.com/beta` 下载，已装的 App 凭构建时注入的**通道令牌**检查更新、App 内下载。两者分开：群里的密钥可以随时换、随时吊销，已装 App 照常收到更新。服务端是 `services/share-worker`（设计见 `docs/design/share-links.md` §14），凭据只以文件形式存在发版机器上，放在仓库之外：

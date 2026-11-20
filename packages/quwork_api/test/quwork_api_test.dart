@@ -7,25 +7,38 @@ import 'package:test/test.dart';
 
 void main() {
   test(
-    'sends the phone login contract and parses optional llm token',
+    'uses the One-API phone login session to obtain a QuWork model key',
     () async {
       final client = MockClient((request) async {
-        expect(request.url.path, '/api/user/client/login');
+        expect(request.url.path, anyOf('/api/user/login', '/api/token/'));
         expect(request.headers['X-QurWork-Version'], '1.1.0');
-        expect(jsonDecode(request.body), containsPair('platform', 'qurvis'));
+        if (request.url.path == '/api/token/') {
+          expect(request.headers['cookie'], 'session=quwork-session');
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'data': [
+                {'key': 'model-key', 'status': 1, 'expired_time': -1},
+              ],
+            }),
+            200,
+          );
+        }
+        expect(
+          jsonDecode(request.body),
+          containsPair('login_type', 'verification_code'),
+        );
         return http.Response(
           jsonEncode({
             'success': true,
             'message': '',
-            'data': {
-              'token': 'jwt',
-              'expire': 1791714075,
-              'llm_token': '',
-              'user': {'id': 7, 'phone': '138****0000'},
-            },
+            'data': {'id': 7, 'phone': '138****0000'},
           }),
           200,
-          headers: {'content-type': 'application/json; charset=utf-8'},
+          headers: {
+            'content-type': 'application/json; charset=utf-8',
+            'set-cookie': 'session=quwork-session; Path=/; HttpOnly',
+          },
         );
       });
       final api = QuWorkAuthApi(
@@ -33,8 +46,9 @@ void main() {
         client: client,
       );
       final result = await api.loginByPhone('13800138000', '123456');
-      expect(result.token, 'jwt');
-      expect(result.llmToken, isNull);
+      expect(result.token, isEmpty);
+      expect(result.llmToken, 'sk-model-key');
+      expect(result.sessionCookie, 'session=quwork-session');
       expect(result.user.id, 7);
     },
   );
@@ -66,6 +80,34 @@ void main() {
     );
   });
 
+  test(
+    'uses the configured QuWork model base URL for model discovery',
+    () async {
+      final client = MockClient((request) async {
+        expect(request.url.path, '/v1/models');
+        expect(request.headers['authorization'], 'Bearer sk-model-key');
+        return http.Response(
+          jsonEncode({
+            'object': 'list',
+            'data': [
+              {'id': 'quwork-chat', 'owned_by': 'quwork'},
+            ],
+          }),
+          200,
+        );
+      });
+      final api = QuWorkAuthApi(
+        baseUri: Uri.parse('https://dev-llm.rrzuji.com'),
+        modelBaseUri: Uri.parse('https://dev-llm.rrzuji.com/v1'),
+        client: client,
+      );
+      expect(
+        (await api.availableModelDetails('sk-model-key')).single.id,
+        'quwork-chat',
+      );
+    },
+  );
+
   test('normalizes business failure', () async {
     final client = MockClient(
       (_) async => http.Response(
@@ -90,36 +132,41 @@ void main() {
     );
   });
 
-  test('keeps a refreshed model credential when the refresh response includes it', () async {
-    final client = MockClient((request) async {
-      expect(request.headers['Authorization'], 'Bearer access-token');
-      if (request.url.path == '/api/user/refresh') {
+  test(
+    'refreshes the One-API session and keeps its model credential',
+    () async {
+      final client = MockClient((request) async {
+        expect(request.headers['cookie'], 'session=quwork-session');
+        if (request.url.path == '/api/token/') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'data': [
+                {'key': 'next-model-token', 'status': 1, 'expired_time': -1},
+              ],
+            }),
+            200,
+          );
+        }
+        expect(request.url.path, '/api/user/self');
         return http.Response(
           jsonEncode({
             'success': true,
-            'data': {
-              'token': 'next-access-token',
-              'expire': 1791714075,
-              'llm_token': 'next-llm-token',
-            },
+            'data': {'id': 7, 'phone': '138****0000'},
           }),
           200,
         );
-      }
-      expect(request.url.path, '/api/user/self');
-      return http.Response(
-        jsonEncode({'success': true, 'data': {'id': 7, 'phone': '138****0000'}}),
-        200,
+      });
+      final api = QuWorkAuthApi(
+        baseUri: Uri.parse('https://dev-llm.rrzuji.com'),
+        client: client,
       );
-    });
-    final api = QuWorkAuthApi(
-      baseUri: Uri.parse('https://dev-llm.rrzuji.com'),
-      client: client,
-    );
-    final result = await api.refresh('access-token');
-    expect(result.token, 'next-access-token');
-    expect(result.llmToken, 'next-llm-token');
-  });
+      api.setSessionCookie('session=quwork-session');
+      final result = await api.refresh();
+      expect(result.token, isEmpty);
+      expect(result.llmToken, 'sk-next-model-token');
+    },
+  );
 
   test('parses WeChat login URL and binding-required callback', () async {
     final client = MockClient((request) async {

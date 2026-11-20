@@ -20571,16 +20571,16 @@ class L10nZh extends L10n {
   String get tavernNext => '下一个回答';
 
   @override
-  String get tavernErrorNoKey => '先在设置里填 DeepSeek API Key';
+  String get tavernErrorNoKey => '请先登录 QuWork';
 
   @override
-  String get tavernKeyMissing => '还没填 DeepSeek API Key，填好就能开始。';
+  String get tavernKeyMissing => '登录 QuWork 后即可开始对话。';
 
   @override
-  String get tavernKeyMissingAction => '去填写';
+  String get tavernKeyMissingAction => '去登录';
 
   @override
-  String get tavernErrorBadKey => 'API Key 不对，去设置里检查一下';
+  String get tavernErrorBadKey => 'QuWork 模型凭据无效，请重新登录';
 
   @override
   String get tavernErrorBusy => '模型现在有点忙，稍后再试';
@@ -20598,7 +20598,7 @@ class L10nZh extends L10n {
   String get tavernFiltered => '这条回复被模型的内容过滤拦下了一部分。';
 
   @override
-  String get tavernErrorBalance => 'DeepSeek 账户余额不足，充值后再试';
+  String get tavernErrorBalance => 'QuWork 模型请求未通过，请检查账号状态后重试';
 
   @override
   String get tavernErrorParameters => '模型不接受这次请求的参数';
@@ -20632,13 +20632,13 @@ class L10nZh extends L10n {
   String get tavernThinkingSubtitle => '回复前先想一想';
 
   @override
-  String get tavernApiKey => 'DeepSeek API Key';
+  String get tavernApiKey => 'QuWork 账号';
 
   @override
-  String get tavernApiKeySet => '已填';
+  String get tavernApiKeySet => '已登录';
 
   @override
-  String get tavernApiKeyMissing => '未填';
+  String get tavernApiKeyMissing => '未登录';
 
   @override
   String get tavernDeleteChat => '删除对话';
@@ -22397,7 +22397,7 @@ class L10nZh extends L10n {
   }
 
   @override
-  String get tavernComposerNoKey => '填好 Key 就能开始';
+  String get tavernComposerNoKey => '登录 QuWork 后即可开始';
 
   @override
   String get tavernWriteOwn => '自己写一个角色';

@@ -27,6 +27,8 @@ ModelSelection? quWorkDefaultSelection(QuWorkModelsState state) {
 }
 
 class QuWorkModelsController extends Notifier<QuWorkModelsState> {
+  Future<void>? _refreshing;
+
   @override
   QuWorkModelsState build() {
     final auth = ref.watch(quWorkAuthProvider);
@@ -34,8 +36,20 @@ class QuWorkModelsController extends Notifier<QuWorkModelsState> {
     return const QuWorkModelsState();
   }
 
-  Future<void> refresh() async {
-    if (state.phase == QuWorkModelsPhase.loading) return;
+  Future<void> refresh() {
+    final refreshing = _refreshing;
+    if (refreshing != null) return refreshing;
+    final future = _refreshNow();
+    _refreshing = future;
+    unawaited(
+      future.whenComplete(() {
+        if (identical(_refreshing, future)) _refreshing = null;
+      }),
+    );
+    return future;
+  }
+
+  Future<void> _refreshNow() async {
     state = QuWorkModelsState(phase: QuWorkModelsPhase.loading, models: state.models);
     try {
       final models = await ref.read(quWorkAuthProvider.notifier).availableModels();
@@ -45,6 +59,13 @@ class QuWorkModelsController extends Notifier<QuWorkModelsState> {
     } catch (error) {
       if (ref.mounted) state = QuWorkModelsState(phase: QuWorkModelsPhase.failed, models: state.models, error: error);
     }
+  }
+
+  Future<bool> ensureAccess() async {
+    final auth = ref.read(quWorkAuthProvider);
+    if (!auth.signedIn || !auth.hasModelCredential) return false;
+    if (state.models.isEmpty) await refresh();
+    return ref.mounted && ref.read(quWorkModelsProvider).models.isNotEmpty;
   }
 }
 

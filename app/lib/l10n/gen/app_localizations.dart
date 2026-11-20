@@ -37841,25 +37841,25 @@ abstract class L10n {
   /// No description provided for @tavernErrorNoKey.
   ///
   /// In zh, this message translates to:
-  /// **'先在设置里填 DeepSeek API Key'**
+  /// **'请先登录 QuWork'**
   String get tavernErrorNoKey;
 
   /// No description provided for @tavernKeyMissing.
   ///
   /// In zh, this message translates to:
-  /// **'还没填 DeepSeek API Key，填好就能开始。'**
+  /// **'登录 QuWork 后即可开始对话。'**
   String get tavernKeyMissing;
 
   /// No description provided for @tavernKeyMissingAction.
   ///
   /// In zh, this message translates to:
-  /// **'去填写'**
+  /// **'去登录'**
   String get tavernKeyMissingAction;
 
   /// No description provided for @tavernErrorBadKey.
   ///
   /// In zh, this message translates to:
-  /// **'API Key 不对，去设置里检查一下'**
+  /// **'QuWork 模型凭据无效，请重新登录'**
   String get tavernErrorBadKey;
 
   /// No description provided for @tavernErrorBusy.
@@ -37895,7 +37895,7 @@ abstract class L10n {
   /// No description provided for @tavernErrorBalance.
   ///
   /// In zh, this message translates to:
-  /// **'DeepSeek 账户余额不足，充值后再试'**
+  /// **'QuWork 模型请求未通过，请检查账号状态后重试'**
   String get tavernErrorBalance;
 
   /// No description provided for @tavernErrorParameters.
@@ -37955,19 +37955,19 @@ abstract class L10n {
   /// No description provided for @tavernApiKey.
   ///
   /// In zh, this message translates to:
-  /// **'DeepSeek API Key'**
+  /// **'QuWork 账号'**
   String get tavernApiKey;
 
   /// No description provided for @tavernApiKeySet.
   ///
   /// In zh, this message translates to:
-  /// **'已填'**
+  /// **'已登录'**
   String get tavernApiKeySet;
 
   /// No description provided for @tavernApiKeyMissing.
   ///
   /// In zh, this message translates to:
-  /// **'未填'**
+  /// **'未登录'**
   String get tavernApiKeyMissing;
 
   /// No description provided for @tavernDeleteChat.
@@ -41141,7 +41141,7 @@ abstract class L10n {
   /// No description provided for @tavernComposerNoKey.
   ///
   /// In zh, this message translates to:
-  /// **'填好 Key 就能开始'**
+  /// **'登录 QuWork 后即可开始'**
   String get tavernComposerNoKey;
 
   /// No description provided for @tavernWriteOwn.

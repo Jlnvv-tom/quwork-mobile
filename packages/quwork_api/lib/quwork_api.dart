@@ -88,12 +88,16 @@ class QuWorkLoginResult {
     required this.expiresAt,
     required this.user,
     this.llmToken,
+    this.sessionCookie,
   });
 
+  /// One-API may return an access token for mobile clients, but the current
+  /// QuWork web login contract primarily authenticates with its session cookie.
   final String token;
   final DateTime expiresAt;
   final QuWorkUser user;
   final String? llmToken;
+  final String? sessionCookie;
 }
 
 class QuWorkSendCodeResult {
@@ -296,18 +300,35 @@ class QuWorkGatewayCredential {
 class QuWorkAuthApi {
   QuWorkAuthApi({
     required Uri baseUri,
+    Uri? modelBaseUri,
     http.Client? client,
     this.version = '1.1.0',
     this.platform = 'qurvis',
+    String? sessionCookie,
   }) : baseUri = _origin(baseUri),
+       modelBaseUri = _origin(
+         modelBaseUri ??
+             (baseUri.path.isEmpty ? baseUri.replace(path: '/v1') : baseUri),
+       ),
        _client = client ?? http.Client(),
-       _ownsClient = client == null;
+       _ownsClient = client == null,
+       _sessionCookie = sessionCookie;
 
   final Uri baseUri;
+  final Uri modelBaseUri;
   final String version;
   final String platform;
   final http.Client _client;
   final bool _ownsClient;
+  String? _sessionCookie;
+
+  String? get sessionCookie => _sessionCookie;
+
+  void setSessionCookie(String? cookie) {
+    _sessionCookie = cookie == null || cookie.trim().isEmpty
+        ? null
+        : cookie.trim();
+  }
 
   void close() {
     if (_ownsClient) _client.close();
@@ -338,12 +359,12 @@ class QuWorkAuthApi {
   }) async {
     final response = await _request(
       'POST',
-      '/api/user/client/login',
+      '/api/user/login',
       headers: {'Content-Type': 'application/json'},
       body: {
         'phone': phone,
         'verification_code': code,
-        'platform': platform,
+        'login_type': 'verification_code',
         if (wechatToken case final token? when token.isNotEmpty)
           'wechat_token': token,
       },
@@ -352,57 +373,56 @@ class QuWorkAuthApi {
     if (data == null) {
       throw const QuWorkApiException('invalid_response', '登录响应格式无效');
     }
-    final token = _requiredText(data['token'], 'invalid_response', '登录凭据缺失');
-    final user = QuWorkUser.fromJson(data['user']);
-    final expire = _requiredEpoch(data['expire']);
-    final llmToken = _optionalText(data['llm_token']);
+    final nestedUser = _asMap(data['user']);
+    final token =
+        _optionalText(data['token']) ??
+        _optionalText(data['access_token']) ??
+        _optionalText(nestedUser?['token']) ??
+        _optionalText(nestedUser?['access_token']) ??
+        '';
+    final user = QuWorkUser.fromJson(nestedUser ?? data);
+    final expire =
+        _optionalEpoch(
+          data['expire'] ?? data['expires_at'] ?? data['expiresAt'],
+        ) ??
+        DateTime.now().add(const Duration(days: 30));
+    final llmToken =
+        _optionalText(data['llm_token']) ??
+        await ensureModelToken(token.isEmpty ? null : token);
     return QuWorkLoginResult(
       token: token,
       expiresAt: expire,
       user: user,
       llmToken: llmToken,
+      sessionCookie: _sessionCookie,
     );
   }
 
-  Future<QuWorkUser> self(String token) async {
+  Future<QuWorkUser> self([String? token]) async {
     final response = await _request('GET', '/api/user/self', token: token);
     return QuWorkUser.fromJson(response['data']);
   }
 
-  Future<QuWorkLoginResult> refresh(String token) async {
-    final response = await _request('GET', '/api/user/refresh', token: token);
+  Future<QuWorkLoginResult> refresh([String? token]) async {
+    final response = await _request('GET', '/api/user/self', token: token);
     final data = _asMap(response['data']);
     if (data == null) {
       throw const QuWorkApiException('invalid_response', '刷新响应格式无效');
     }
-    final nextToken = _requiredText(
-      data['token'],
-      'invalid_response',
-      '刷新凭据缺失',
-    );
-    final user = await self(nextToken);
+    final user = QuWorkUser.fromJson(data);
+    final llmToken = await ensureModelToken(token);
     return QuWorkLoginResult(
-      token: nextToken,
-      expiresAt: _requiredEpoch(data['expire']),
+      token: token ?? '',
+      expiresAt: DateTime.now().add(const Duration(days: 30)),
       user: user,
-      llmToken: _optionalText(data['llm_token']),
+      llmToken: llmToken,
+      sessionCookie: _sessionCookie,
     );
   }
 
   Future<List<String>> availableModels(String token) async {
-    final response = await _request(
-      'GET',
-      '/api/user/available_models',
-      token: token,
-    );
-    final data = response['data'];
-    if (data is! List) {
-      throw const QuWorkApiException('invalid_response', '模型列表格式无效');
-    }
-    return [
-      for (final value in data)
-        if (value is String && value.trim().isNotEmpty) value,
-    ];
+    final models = await availableModelDetails(token);
+    return [for (final model in models) model.id];
   }
 
   Future<QuWorkWechatLoginStart> startWechatLogin() async {
@@ -430,7 +450,7 @@ class QuWorkAuthApi {
     };
     final response = await _request(
       'GET',
-      '/api/oauth/wechat',
+      '/api/oauth/web-wechat',
       query: query,
       acceptFailureData: true,
     );
@@ -439,13 +459,18 @@ class QuWorkAuthApi {
       throw const QuWorkApiException('invalid_response', '微信登录响应格式无效');
     final token = _optionalText(data['token']);
     if (token != null) {
-      final user = QuWorkUser.fromJson(data['user']);
+      final user = QuWorkUser.fromJson(_asMap(data['user']) ?? data);
+      final llmToken =
+          _optionalText(data['llm_token']) ?? await ensureModelToken(token);
       return QuWorkWechatLoginResult(
         login: QuWorkLoginResult(
           token: token,
-          expiresAt: _requiredEpoch(data['expire']),
+          expiresAt:
+              _optionalEpoch(data['expire']) ??
+              DateTime.now().add(const Duration(days: 30)),
           user: user,
-          llmToken: _optionalText(data['llm_token']),
+          llmToken: llmToken,
+          sessionCookie: _sessionCookie,
         ),
       );
     }
@@ -468,8 +493,10 @@ class QuWorkAuthApi {
   Future<List<QuWorkModel>> availableModelDetails(String token) async {
     final response = await _request(
       'GET',
-      '/api/user/available_models',
+      '/models',
       token: token,
+      requireSuccess: false,
+      requestBaseUri: modelBaseUri,
     );
     final data = response['data'];
     if (data is! List)
@@ -480,7 +507,72 @@ class QuWorkAuthApi {
     ];
   }
 
-  Future<void> logout(String token) async {
+  /// Returns the user's first enabled One-API key, creating a dedicated
+  /// QuWork Mobile key when the account has not created one yet. The key is
+  /// used only for QuWork's `/v1` model endpoint and is never logged.
+  Future<String> ensureModelToken([String? token]) async {
+    final existing = await _listModelTokens(token);
+    for (final value in existing) {
+      final key = _modelTokenFrom(value);
+      if (key != null && _usableModelToken(value)) return key;
+    }
+
+    await _request(
+      'POST',
+      '/api/token/',
+      token: token,
+      body: const {
+        'name': 'QuWork Mobile',
+        'expired_time': -1,
+        'unlimited_quota': true,
+      },
+    );
+    for (final value in await _listModelTokens(token)) {
+      final key = _modelTokenFrom(value);
+      if (key != null && _usableModelToken(value)) return key;
+    }
+    throw const QuWorkApiException(
+      'model_credential_missing',
+      'QuWork 账号没有可用的模型凭据',
+    );
+  }
+
+  Future<List<Map<String, Object?>>> _listModelTokens(String? token) async {
+    final response = await _request(
+      'GET',
+      '/api/token/',
+      query: const {'p': '0', 'order': ''},
+      token: token,
+    );
+    final data = response['data'];
+    if (data is! List)
+      throw const QuWorkApiException('invalid_response', 'QuWork 模型凭据格式无效');
+    return [
+      for (final value in data)
+        if (_asMap(value) case final map?) map,
+    ];
+  }
+
+  String? _modelTokenFrom(Map<String, Object?> value) {
+    final key = _optionalText(value['key']);
+    if (key == null) return null;
+    return key.startsWith('sk-') ? key : 'sk-$key';
+  }
+
+  bool _usableModelToken(Map<String, Object?> value) {
+    final status = value['status'];
+    if (status != null && status != 1 && status != '1') return false;
+    final expiry = value['expired_time'];
+    if (expiry == null || expiry == -1 || expiry == '-1') return true;
+    final number = expiry is num ? expiry.toInt() : int.tryParse('$expiry');
+    return number == null ||
+        number <= 0 ||
+        DateTime.fromMillisecondsSinceEpoch(
+          number < 100000000000 ? number * 1000 : number,
+        ).isAfter(DateTime.now());
+  }
+
+  Future<void> logout([String? token]) async {
     await _request('GET', '/api/user/logout', token: token);
   }
 
@@ -492,9 +584,12 @@ class QuWorkAuthApi {
     Map<String, Object?>? body,
     String? token,
     bool acceptFailureData = false,
+    bool requireSuccess = true,
+    Uri? requestBaseUri,
   }) async {
-    final uri = baseUri.replace(
-      path: '${baseUri.path.replaceFirst(RegExp(r'/$'), '')}$path',
+    final origin = requestBaseUri ?? baseUri;
+    final uri = origin.replace(
+      path: '${origin.path.replaceFirst(RegExp(r'/$'), '')}$path',
       queryParameters: query,
     );
     final request = http.Request(method, uri);
@@ -503,6 +598,8 @@ class QuWorkAuthApi {
       'X-QurWork-Version': version,
       ...?headers,
     });
+    if (_sessionCookie case final cookie? when cookie.isNotEmpty)
+      request.headers['Cookie'] = cookie;
     if (token case final value? when value.isNotEmpty) {
       request.headers['Authorization'] = 'Bearer $value';
     }
@@ -522,6 +619,7 @@ class QuWorkAuthApi {
           .send(request)
           .then(http.Response.fromStream)
           .timeout(const Duration(seconds: 20));
+      _captureCookies(response);
     } on TimeoutException {
       throw const QuWorkApiException('timeout', '请求超时');
     } on http.ClientException catch (error) {
@@ -550,7 +648,9 @@ class QuWorkAuthApi {
         statusCode: response.statusCode,
       );
     }
-    if (success != true && !(acceptFailureData && success == false)) {
+    if (requireSuccess &&
+        success != true &&
+        !(acceptFailureData && success == false)) {
       throw QuWorkApiException(
         'invalid_response',
         '服务响应格式无效',
@@ -558,6 +658,30 @@ class QuWorkAuthApi {
       );
     }
     return payload;
+  }
+
+  void _captureCookies(http.Response response) {
+    final raw = response.headers['set-cookie'];
+    if (raw == null || raw.isEmpty) return;
+    final cookies = <String, String>{};
+    for (final part in raw.split(RegExp(r',\s*(?=[^;=,]+\s*=)'))) {
+      final pair = part.split(';').first.trim();
+      final separator = pair.indexOf('=');
+      if (separator > 0)
+        cookies[pair.substring(0, separator)] = pair.substring(separator + 1);
+    }
+    if (cookies.isEmpty) return;
+    final existing = <String, String>{};
+    for (final part in (_sessionCookie ?? '').split(';')) {
+      final pair = part.trim();
+      final separator = pair.indexOf('=');
+      if (separator > 0)
+        existing[pair.substring(0, separator)] = pair.substring(separator + 1);
+    }
+    existing.addAll(cookies);
+    _sessionCookie = existing.entries
+        .map((entry) => '${entry.key}=${entry.value}')
+        .join('; ');
   }
 }
 
@@ -573,7 +697,9 @@ class QuWorkGatewayApi {
 
   /// Headers for authenticated DSH Web HTTP calls after native pairing. The
   /// session token is kept in secure storage by the App state layer.
-  Map<String, String> authenticatedHeaders(QuWorkGatewayCredential credential) => {
+  Map<String, String> authenticatedHeaders(
+    QuWorkGatewayCredential credential,
+  ) => {
     'Cookie': 'dsh_ma_session=${credential.sessionToken}',
     'X-CSRF-Token': credential.csrfToken,
   };
@@ -641,7 +767,8 @@ class QuWorkGatewayApi {
         body: {'deviceToken': credential.deviceToken},
       );
       final instanceId = _optionalText(value['instanceId']);
-      if (credential.instanceId != null && instanceId != credential.instanceId) {
+      if (credential.instanceId != null &&
+          instanceId != credential.instanceId) {
         throw const QuWorkApiException(
           'gateway_instance_mismatch',
           'Gateway 实例已变化，请重新配对',
@@ -731,7 +858,8 @@ class QuWorkGatewayApi {
       'Gateway 设备标识缺失',
     );
     final responseInstance = _optionalText(value['instanceId']);
-    if (pairing?.instanceId != null && responseInstance != pairing!.instanceId) {
+    if (pairing?.instanceId != null &&
+        responseInstance != pairing!.instanceId) {
       throw const QuWorkApiException(
         'gateway_instance_mismatch',
         'Gateway 实例校验失败',
@@ -782,6 +910,15 @@ DateTime _requiredEpoch(Object? value) {
   return DateTime.fromMillisecondsSinceEpoch(
     number < 100000000000 ? number * 1000 : number,
   );
+}
+
+DateTime? _optionalEpoch(Object? value) {
+  if (value == null) return null;
+  try {
+    return _requiredEpoch(value);
+  } on QuWorkApiException {
+    return null;
+  }
 }
 
 bool? _success(Object? value) => switch (value) {
