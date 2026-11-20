@@ -70,7 +70,7 @@ void main() {
       Future<List<(int, int)>> heard(List<Map<String, Object?>> events) async {
         final usage = <(int, int)>[];
         await streamCompanionReply(
-          client: _answering(200, _sse(events)),
+          client: _answering(200, _sse(events) + 'data: [DONE]\n\n'),
           apiKey: 'sk-test',
           system: '',
           lines: const [CompanionLine.user('你好')],
@@ -81,20 +81,19 @@ void main() {
 
       expect(
         await heard([
-              _text('你来啦。'),
-              {
-                'choices': [],
-                'usage': {'prompt_tokens': 900, 'completion_tokens': 20},
-              },
-              {
-                'choices': [],
-                'usage': {'prompt_tokens': 1200, 'completion_tokens': 42},
-              },
-            ]) +
-            'data: [DONE]\n\n',
+          _text('你来啦。'),
+          {
+            'choices': [],
+            'usage': {'prompt_tokens': 900, 'completion_tokens': 20},
+          },
+          {
+            'choices': [],
+            'usage': {'prompt_tokens': 1200, 'completion_tokens': 42},
+          },
+        ]),
         [(1200, 42)],
       );
-      expect(await heard([_text('你来啦。')]) + 'data: [DONE]\n\n', isEmpty);
+      expect(await heard([_text('你来啦。')]), isEmpty);
     });
 
     test('a refused key, a busy model and an error event say which', () async {
