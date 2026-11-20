@@ -76,4 +76,4 @@ Providers configured in DSH Web can only be viewed or deleted here. Providers fr
 Tap DeepSeek under **Official**, or the account card at the top of Settings:
 
 - **Sign in with DeepSeek**: sign in with your browser. Needs DSH installed on this phone.
-- **DeepSeek API key**: enter one if you haven't; otherwise **Replace key** or **Clear**. Clearing while this phone's engine is running deletes the engine's key too. If the engine isn't running, the engine keeps its key; remove it in DSH Web's model settings.
+- **QuWork account**: signing in manages the model credential for you, so there is no key to enter on this phone.

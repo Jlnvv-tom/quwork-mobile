@@ -77,7 +77,7 @@ Each chat can pick its own layout under **This chat** on the **Stage**; the defa
 <!-- nav: tavernTitle,tavernSectionMe,tavernSettings -->
 `Tavern › Me › Tavern settings`
 
-- **Model & connection**: the main model, **Flash** or **V4 Pro**, **Thinking** on or off, and the **DeepSeek API key** (the same key as the chat screen; the page points you to fill it in when missing).
+- **Model & connection**: the main model, **Flash** or **V4 Pro**, **Thinking** on or off, and the **QuWork account** (the same sign-in as the chat screen; the page points you to sign in when signed out).
 - **Generation**: the default preset's **Reply limit** and **Temperature**; a chat that brought its own preset keeps it.
 - **Display**: **Layout** (**Bubbles**, **Novel**, **Visual novel**), **Text size**, **Colours**, whether to **Use the card's own look**, **Import an ST theme**, and the switches for HTML panels and the whole-story canvas.
 - **Safety**: **No card scripts in those pages** and **Keep those pages offline**, both off by default.
